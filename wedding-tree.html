@@ -1,0 +1,2190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wedding Family Tree</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Noto+Serif:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --font-display: 'Noto Serif', serif;
+      --font-body: 'Noto Sans', sans-serif;
+      --color-bg-gradient: linear-gradient(180deg, #9bb0bc 0%, #e8e6e0 42%, #f5f0e8 62%, #fce8cf 82%, #f5a030 100%);
+      --color-card-bg: rgba(255, 252, 247, 0.88);
+      --color-card-border: rgba(210, 185, 155, 0.45);
+      --color-connector: rgba(160, 120, 70, 0.55);
+      --color-text-primary: #2a1f14;
+      --color-text-secondary: #6a5040;
+      --color-text-muted: #a08060;
+
+      /* Functional aliases */
+      --accent:       #b86a2a;
+      --accent-hover: #c97d3e;
+      --accent-soft:  rgba(184, 106, 42, 0.12);
+      --danger:       #b83232;
+      --danger-soft:  rgba(184, 50, 50, 0.1);
+      --surface2:     rgba(235, 220, 200, 0.55);
+      --g1-color:     #b85070;
+      --g2-color:     #3a9e7a;
+    }
+
+    /* ── NOISE GRAIN OVERLAY ── */
+    html::before {
+      content: '';
+      position: fixed; inset: 0;
+      pointer-events: none; z-index: 10000;
+      opacity: 0.038;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='250' height='250'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+    }
+
+    body {
+      font-family: var(--font-body);
+      color: var(--color-text-primary);
+      height: 100vh;
+      display: flex;
+      overflow: hidden;
+      background: var(--color-bg-gradient);
+      background-attachment: fixed;
+    }
+
+    /* ── SIDEBAR ── */
+    #sidebar {
+      width: 272px; min-width: 272px;
+      background: var(--color-card-bg);
+      backdrop-filter: blur(14px) saturate(1.3);
+      -webkit-backdrop-filter: blur(14px) saturate(1.3);
+      border-right: 1px solid var(--color-card-border);
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+
+    #sidebar-header {
+      padding: 18px 16px 14px;
+      border-bottom: 1px solid var(--color-card-border);
+      display: flex; align-items: flex-start; justify-content: space-between;
+    }
+
+    #sidebar-header h1 {
+      font-family: var(--font-display);
+      font-size: 1.05rem; font-weight: 700;
+      color: var(--color-text-primary);
+    }
+    #sidebar-header p { font-size: 0.72rem; color: var(--color-text-muted); margin-top: 3px; }
+
+    .header-btns { display: flex; gap: 5px; flex-shrink: 0; margin-left: 8px; }
+
+    .icon-btn {
+      width: 30px; height: 30px; border-radius: 7px;
+      background: rgba(255,252,247,0.6);
+      border: 1px solid var(--color-card-border);
+      color: var(--color-text-secondary); font-size: 0.9rem;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .icon-btn:hover { background: rgba(210,185,155,0.35); }
+    .icon-btn.locked   { color: #b8822a; border-color: rgba(184,130,42,0.5); }
+    .icon-btn.unlocked { color: #3a9e7a; border-color: rgba(58,158,122,0.5); }
+
+    #sidebar-actions {
+      padding: 10px;
+      display: flex; flex-direction: column; gap: 7px;
+      border-bottom: 1px solid var(--color-card-border);
+    }
+
+    body.locked .edit-only { opacity: 0.38; pointer-events: none; }
+
+    .btn {
+      padding: 8px 13px; border-radius: 8px; border: none;
+      cursor: pointer; font-size: 0.845rem; font-weight: 600;
+      font-family: var(--font-body);
+      transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+      display: flex; align-items: center; gap: 6px; justify-content: center;
+    }
+    .btn-primary {
+      background: var(--accent); color: #fff;
+      box-shadow: 0 2px 8px rgba(184,106,42,0.28);
+    }
+    .btn-primary:hover { background: var(--accent-hover); box-shadow: 0 3px 12px rgba(184,106,42,0.38); }
+
+    .btn-secondary {
+      background: rgba(210,185,155,0.22);
+      color: var(--color-text-secondary);
+      border: 1px solid var(--color-card-border);
+    }
+    .btn-secondary:hover { background: rgba(210,185,155,0.4); }
+
+    .btn-danger {
+      background: transparent;
+      color: var(--danger);
+      border: 1px solid rgba(184,50,50,0.35);
+    }
+    .btn-danger:hover { background: var(--danger); color: #fff; }
+    .btn-sm { padding: 5px 10px; font-size: 0.78rem; }
+
+    /* Side filter tabs */
+    #side-filter {
+      display: flex; gap: 4px; padding: 6px 10px 2px;
+      border-bottom: 1px solid var(--color-card-border);
+    }
+    .stab {
+      flex: 1; padding: 5px 4px; border-radius: 6px; border: none;
+      background: rgba(210,185,155,0.15); color: var(--color-text-muted);
+      font-size: 0.69rem; font-weight: 600; font-family: var(--font-body);
+      cursor: pointer; transition: background 0.15s, color 0.15s; text-align: center;
+    }
+    .stab:hover { background: rgba(210,185,155,0.3); }
+    .stab.active { background: var(--accent); color: #fff; }
+    .stab.g1.active { background: var(--g1-color); }
+    .stab.g2.active { background: var(--g2-color); }
+
+    #search-wrap { padding: 8px 10px 4px; }
+    #search-box {
+      width: 100%; padding: 7px 11px;
+      background: rgba(255,252,247,0.7);
+      border: 1px solid var(--color-card-border);
+      border-radius: 8px; color: var(--color-text-primary);
+      font-size: 0.845rem; font-family: var(--font-body); outline: none;
+    }
+    #search-box::placeholder { color: var(--color-text-muted); }
+    #search-box:focus { border-color: rgba(184,106,42,0.55); box-shadow: 0 0 0 3px rgba(184,106,42,0.1); }
+
+    #person-list { flex: 1; overflow-y: auto; padding: 6px; }
+    #person-list::-webkit-scrollbar { width: 4px; }
+    #person-list::-webkit-scrollbar-thumb { background: rgba(184,106,42,0.25); border-radius: 2px; }
+
+    .person-item {
+      display: flex; align-items: center; gap: 9px;
+      padding: 7px 9px; border-radius: 8px; cursor: pointer;
+      transition: background 0.12s;
+    }
+    .person-item:hover  { background: rgba(210,185,155,0.25); }
+    .person-item.active { background: rgba(184,106,42,0.15); border: none; }
+
+    .side-pip {
+      width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+    }
+    .p-avatar {
+      width: 27px; height: 36px; border-radius: 50%;
+      background: rgba(210,185,155,0.3);
+      border: 1.5px solid var(--color-card-border);
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-display); font-size: 0.82rem; font-weight: 700;
+      color: var(--color-text-secondary); overflow: hidden;
+    }
+    .p-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .p-name {
+      font-family: var(--font-display);
+      font-size: 0.845rem; font-weight: 600;
+      color: var(--color-text-primary);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .p-role { font-size: 0.71rem; color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    #sidebar-footer {
+      padding: 9px 10px; border-top: 1px solid var(--color-card-border);
+      display: flex; gap: 6px;
+    }
+
+    /* ── MAIN GRAPH ── */
+    #main { flex: 1; position: relative; overflow: hidden; }
+    #graph-svg { width: 100%; height: 100%; display: block; }
+
+    #empty-state {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      pointer-events: none;
+    }
+    #empty-state .big { font-size: 3rem; margin-bottom: 10px; }
+    #empty-state p {
+      font-family: var(--font-display);
+      font-size: 0.95rem; color: var(--color-text-secondary);
+    }
+
+    #zoom-controls {
+      position: absolute; bottom: 18px; right: 18px;
+      display: flex; flex-direction: column; gap: 5px;
+    }
+    .z-btn {
+      width: 34px; height: 34px; border-radius: 8px;
+      background: var(--color-card-bg);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--color-card-border);
+      color: var(--color-text-secondary); font-size: 1rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s;
+    }
+    .z-btn:hover { background: rgba(210,185,155,0.4); }
+
+    /* ── LEGEND ── */
+    #legend {
+      position: absolute; top: 14px; right: 14px;
+      background: var(--color-card-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--color-card-border);
+      border-radius: 10px; padding: 10px 13px; font-size: 0.72rem;
+      max-height: calc(100vh - 28px); overflow-y: auto;
+      box-shadow: 0 4px 20px rgba(100,70,30,0.1);
+    }
+    #legend h3 {
+      font-family: var(--font-display);
+      font-size: 0.68rem; text-transform: uppercase;
+      letter-spacing: 0.07em; color: var(--color-text-muted);
+      margin-bottom: 8px;
+    }
+    .leg-row { display: flex; align-items: center; gap: 7px; margin-bottom: 4px; }
+    .leg-line { width: 22px; height: 2px; border-radius: 2px; flex-shrink: 0; }
+
+    /* ── DETAIL PANEL ── */
+    #detail-panel {
+      position: absolute; right: 0; top: 0; bottom: 0; width: 292px;
+      background: var(--color-card-bg);
+      backdrop-filter: blur(14px) saturate(1.2);
+      -webkit-backdrop-filter: blur(14px) saturate(1.2);
+      border-left: 1px solid var(--color-card-border);
+      box-shadow: -4px 0 24px rgba(100,70,30,0.08);
+      display: flex; flex-direction: column; overflow-y: auto;
+      transform: translateX(100%); transition: transform 0.24s ease;
+      z-index: 10;
+    }
+    #detail-panel.open { transform: translateX(0); }
+    #detail-inner { padding: 16px; }
+    #detail-panel::-webkit-scrollbar { width: 4px; }
+    #detail-panel::-webkit-scrollbar-thumb { background: rgba(184,106,42,0.25); border-radius: 2px; }
+
+    .dp-topbar { display: flex; justify-content: space-between; margin-bottom: 14px; }
+
+    .dp-photo {
+      width: 62px; height: 82px; border-radius: 50%;
+      background: rgba(210,185,155,0.3);
+      border: 2px solid var(--color-card-border);
+      margin: 0 auto 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-display);
+      font-size: 1.6rem; font-weight: 700; color: var(--color-text-secondary);
+      overflow: hidden;
+    }
+    .dp-photo img { width: 100%; height: 100%; object-fit: cover; }
+    .dp-name {
+      font-family: var(--font-display);
+      font-size: 1.12rem; font-weight: 700;
+      text-align: center; color: var(--color-text-primary);
+    }
+    .dp-meta { font-size: 0.8rem; color: var(--color-text-muted); text-align: center; margin-top: 3px; }
+    .dp-notes {
+      margin-top: 10px; padding: 9px 11px;
+      background: rgba(210,185,155,0.18);
+      border: 1px solid var(--color-card-border);
+      border-radius: 8px;
+      font-size: 0.82rem; color: var(--color-text-secondary);
+    }
+    .dp-section { margin-top: 18px; }
+    .dp-section h3 {
+      font-family: var(--font-display);
+      font-size: 0.68rem; text-transform: uppercase;
+      letter-spacing: 0.07em; color: var(--color-text-muted); margin-bottom: 9px;
+    }
+    .conn-item {
+      display: flex; align-items: center; gap: 9px;
+      padding: 7px 0; border-bottom: 1px solid var(--color-card-border); cursor: pointer;
+    }
+    .conn-item:last-child { border-bottom: none; }
+    .conn-item:hover .conn-name { color: var(--accent); }
+    .conn-av {
+      width: 24px; height: 32px; border-radius: 50%;
+      background: rgba(210,185,155,0.3);
+      border: 1px solid var(--color-card-border);
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-display);
+      font-size: 0.72rem; font-weight: 700; color: var(--color-text-secondary);
+      overflow: hidden;
+    }
+    .conn-av img { width: 100%; height: 100%; object-fit: cover; }
+    .conn-name {
+      font-family: var(--font-display);
+      font-size: 0.845rem; font-weight: 600;
+      color: var(--color-text-primary);
+      transition: color 0.12s;
+    }
+    .conn-rel { font-size: 0.72rem; }
+
+    /* ── MODALS ── */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(42,31,20,0.45);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000; backdrop-filter: blur(4px);
+    }
+    .modal {
+      background: rgba(255, 252, 247, 0.96);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--color-card-border);
+      border-radius: 16px; padding: 26px;
+      width: 430px; max-width: 95vw;
+      max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 8px 40px rgba(100,70,30,0.18);
+    }
+    .modal.narrow { width: 320px; }
+    .modal h2 {
+      font-family: var(--font-display);
+      font-size: 1.08rem; font-weight: 700;
+      color: var(--color-text-primary);
+      margin-bottom: 18px;
+    }
+
+    .fg { margin-bottom: 14px; }
+    .fg label {
+      display: block; font-size: 0.71rem; font-weight: 600;
+      color: var(--color-text-muted); text-transform: uppercase;
+      letter-spacing: 0.06em; margin-bottom: 5px;
+    }
+    .fg input, .fg select, .fg textarea {
+      width: 100%; padding: 9px 11px;
+      background: rgba(255,252,247,0.8);
+      border: 1px solid var(--color-card-border);
+      border-radius: 8px; color: var(--color-text-primary);
+      font-size: 0.875rem; font-family: var(--font-body); outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .fg input:focus, .fg select:focus, .fg textarea:focus {
+      border-color: rgba(184,106,42,0.55);
+      box-shadow: 0 0 0 3px rgba(184,106,42,0.1);
+    }
+    .fg select option { background: #fdf8f2; color: var(--color-text-primary); }
+
+    .photo-drop {
+      border: 2px dashed rgba(210,185,155,0.6); border-radius: 11px;
+      padding: 18px; text-align: center; cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      background: rgba(210,185,155,0.08);
+    }
+    .photo-drop:hover { border-color: var(--accent); background: rgba(184,106,42,0.06); }
+    .photo-thumb {
+      width: 58px; height: 78px; border-radius: 50%;
+      object-fit: cover; margin: 0 auto 8px; display: none;
+      border: 2px solid var(--color-card-border);
+    }
+    .photo-thumb.show { display: block; }
+
+    .modal-actions { display: flex; gap: 9px; margin-top: 20px; justify-content: flex-end; }
+
+    .dir-note {
+      font-size: 0.8rem; color: var(--color-text-secondary);
+      padding: 8px 11px; background: rgba(184,106,42,0.08);
+      border: 1px solid rgba(184,106,42,0.2);
+      border-radius: 7px; margin-bottom: 12px;
+    }
+
+    /* PIN pad */
+    .pin-display {
+      font-family: var(--font-display);
+      font-size: 2rem; letter-spacing: 0.5em; text-align: center;
+      padding: 12px 0; color: var(--color-text-primary); min-height: 60px;
+    }
+    .pin-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-top: 8px; }
+    .pin-key {
+      padding: 14px; border-radius: 10px;
+      background: rgba(210,185,155,0.2); border: 1px solid var(--color-card-border);
+      color: var(--color-text-primary);
+      font-family: var(--font-display); font-size: 1.1rem; font-weight: 600;
+      cursor: pointer; text-align: center; transition: background 0.12s;
+    }
+    .pin-key:hover { background: rgba(184,106,42,0.18); }
+
+    /* Settings */
+    .settings-section {
+      padding: 12px 0; border-bottom: 1px solid var(--color-card-border);
+      margin-bottom: 12px;
+    }
+    .settings-section h3 {
+      font-family: var(--font-display);
+      font-size: 0.75rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--color-text-muted); margin-bottom: 10px;
+    }
+    .side-preview { display: flex; gap: 8px; margin-top: 8px; }
+    .side-pill {
+      flex: 1; padding: 6px 10px; border-radius: 8px;
+      font-family: var(--font-display);
+      font-size: 0.8rem; font-weight: 600; text-align: center;
+    }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed; bottom: 18px; left: 50%;
+      transform: translateX(-50%) translateY(70px);
+      background: rgba(255,252,247,0.96);
+      border: 1px solid var(--color-card-border);
+      box-shadow: 0 4px 20px rgba(100,70,30,0.15);
+      border-radius: 8px; padding: 9px 18px;
+      font-size: 0.845rem; font-family: var(--font-body);
+      color: var(--color-text-primary);
+      z-index: 9999; transition: transform 0.25s ease; pointer-events: none;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ── LOCK BANNER ── */
+    #lock-banner {
+      position: absolute; top: 0; left: 0; right: 0;
+      background: rgba(255,248,235,0.82);
+      backdrop-filter: blur(6px);
+      border-bottom: 1px solid rgba(184,130,42,0.3);
+      padding: 6px 14px; font-size: 0.78rem;
+      color: #8a6020; font-family: var(--font-body);
+      text-align: center; display: flex; align-items: center;
+      justify-content: center; gap: 8px;
+    }
+    #lock-banner button {
+      background: rgba(184,130,42,0.15);
+      border: 1px solid rgba(184,130,42,0.4);
+      color: #8a6020; border-radius: 5px; padding: 2px 10px;
+      font-size: 0.75rem; font-family: var(--font-body); cursor: pointer;
+    }
+    #lock-banner button:hover { background: rgba(184,130,42,0.3); }
+    body:not(.locked) #lock-banner { display: none; }
+
+    /* ── D3 NODE STYLES ── */
+    .node-label {
+      font-family: 'Noto Serif', serif;
+      font-size: 11px; font-weight: 600;
+      fill: var(--color-text-primary); /* overridden inline */
+      pointer-events: none; text-anchor: middle;
+    }
+    .link-line { stroke-opacity: 1; }
+    .link-lbl  { font-family: 'Noto Sans', sans-serif; font-size: 9.5px; pointer-events: none; text-anchor: middle; }
+
+    .hidden { display: none !important; }
+
+    /* ══════════════════════════════════════
+       NIGHT MODE OVERRIDES
+    ══════════════════════════════════════ */
+    body.night {
+      --color-bg-gradient:    linear-gradient(180deg, #05080f 0%, #090e1c 25%, #0e0b22 52%, #190930 75%, #260a1e 100%);
+      --color-card-bg:        rgba(12, 8, 26, 0.88);
+      --color-card-border:    rgba(100, 72, 165, 0.28);
+      --color-text-primary:   #ede8fc;
+      --color-text-secondary: #b5add5;
+      --color-text-muted:     #6c5e98;
+      --accent:               #c47830;
+      --accent-hover:         #d48840;
+      --accent-soft:          rgba(196,120,48,0.18);
+      --danger:               #c04040;
+      --surface2:             rgba(32, 22, 58, 0.6);
+      --g1-color:             #d06888;
+      --g2-color:             #48ae88;
+    }
+
+    /* Night: input + search backgrounds */
+    body.night #search-box,
+    body.night .fg input,
+    body.night .fg select,
+    body.night .fg textarea {
+      background: rgba(22, 15, 44, 0.75);
+      color: var(--color-text-primary);
+    }
+    body.night .fg select option { background: #130b28; }
+
+    /* Night: photo drop zone */
+    body.night .photo-drop {
+      border-color: rgba(100, 72, 165, 0.35);
+      background: rgba(22, 15, 44, 0.35);
+    }
+
+    /* Night: modal background */
+    body.night .modal {
+      background: rgba(14, 10, 30, 0.96);
+    }
+
+    /* Night: pin keys */
+    body.night .pin-key {
+      background: rgba(32, 22, 58, 0.8);
+      border-color: rgba(100, 72, 165, 0.3);
+    }
+    body.night .pin-key:hover { background: rgba(60, 40, 100, 0.7); }
+
+    /* Night: person item hover/active */
+    body.night .person-item:hover  { background: rgba(60, 40, 100, 0.25); }
+    body.night .person-item.active { background: rgba(196,120,48,0.18); }
+
+    /* Night: lock banner */
+    body.night #lock-banner {
+      background: rgba(25, 12, 48, 0.82);
+      border-bottom-color: rgba(150, 100, 220, 0.25);
+      color: #a090d0;
+    }
+    body.night #lock-banner button {
+      background: rgba(120,80,200,0.18);
+      border-color: rgba(150,100,220,0.35);
+      color: #a090d0;
+    }
+
+    /* Night: scrollbar */
+    body.night #person-list::-webkit-scrollbar-thumb,
+    body.night #detail-panel::-webkit-scrollbar-thumb {
+      background: rgba(120,80,200,0.3);
+    }
+
+    /* Night: dir-note */
+    body.night .dir-note {
+      background: rgba(100,72,165,0.12);
+      border-color: rgba(100,72,165,0.25);
+    }
+
+    /* Night: dp-notes */
+    body.night .dp-notes {
+      background: rgba(32,22,58,0.5);
+      border-color: rgba(100,72,165,0.2);
+    }
+
+    /* Stars layer */
+    #night-stars {
+      position: fixed; inset: 0;
+      width: 100%; height: 100%;
+      pointer-events: none; z-index: 0;
+    }
+
+    /* Night mode button state colours */
+    .icon-btn.night-on { color: #a090d8; border-color: rgba(160,144,216,0.45); }
+
+    /* Smooth theme transition */
+    body, #sidebar, #detail-panel, .modal, #legend, #lock-banner,
+    .btn, .person-item, #search-box, .stab, .z-btn, .icon-btn {
+      transition: background 0.35s ease, color 0.25s ease,
+                  border-color 0.35s ease, box-shadow 0.35s ease;
+    }
+
+    /* ── INVITE GATE ── */
+    #invite-gate {
+      position:fixed;inset:0;z-index:9990;
+      background:var(--color-bg-gradient);background-attachment:fixed;
+      display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;
+    }
+    #invite-gate.hidden{display:none;}
+    #invite-gate .gate-lock{font-size:4rem;margin-bottom:16px;}
+    #invite-gate h1{font-family:var(--font-display);font-size:1.6rem;font-weight:700;color:var(--color-text-primary);}
+    #invite-gate p{font-size:0.88rem;color:var(--color-text-muted);margin-top:8px;}
+
+    /* ── VERIFY OVERLAY ── */
+    #verify-overlay{position:fixed;inset:0;z-index:8000;background:var(--color-bg-gradient);background-attachment:fixed;display:flex;align-items:center;justify-content:center;}
+    .vf-card{background:var(--color-card-bg);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid var(--color-card-border);border-radius:20px;padding:36px 32px;width:420px;max-width:95vw;box-shadow:0 12px 50px rgba(100,70,30,0.18);text-align:center;}
+    .vf-emoji{font-size:2.2rem;margin-bottom:10px;}
+    .vf-title{font-family:var(--font-display);font-size:1.15rem;font-weight:700;color:var(--color-text-primary);margin-bottom:6px;}
+    .vf-sub{font-size:0.83rem;color:var(--color-text-muted);margin-bottom:20px;line-height:1.5;}
+    .vf-input{width:100%;padding:11px 14px;border-radius:10px;border:1.5px solid var(--color-card-border);background:rgba(255,252,247,0.85);font-size:0.9rem;font-family:var(--font-body);color:var(--color-text-primary);outline:none;margin-bottom:8px;}
+    .vf-input:focus{border-color:rgba(184,106,42,0.6);box-shadow:0 0 0 3px rgba(184,106,42,0.1);}
+    .vf-results{text-align:left;margin-bottom:10px;}
+    .vr-match{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background 0.12s;}
+    .vr-match:hover{background:rgba(210,185,155,0.3);}
+    .vr-av{width:32px;height:42px;border-radius:50%;flex-shrink:0;background:rgba(210,185,155,0.3);border:1.5px solid var(--color-card-border);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:0.8rem;font-weight:700;color:var(--color-text-secondary);overflow:hidden;}
+    .vr-av img{width:100%;height:100%;object-fit:cover;}
+    .vr-name{font-family:var(--font-display);font-size:0.88rem;font-weight:600;color:var(--color-text-primary);}
+    .vr-role{font-size:0.71rem;color:var(--color-text-muted);}
+    .vr-no-match{font-size:0.82rem;color:var(--color-text-muted);padding:8px 10px;}
+    .vf-admin-link{margin-top:16px;font-size:0.73rem;color:var(--color-text-muted);cursor:pointer;display:inline-block;}
+    .vf-admin-link:hover{color:var(--accent);}
+
+    /* ── GUEST FORM ── */
+    #guest-form-overlay{position:fixed;inset:0;z-index:7500;background:rgba(42,31,20,0.52);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;}
+    .gf-card{background:rgba(255,252,247,0.97);backdrop-filter:blur(18px);border:1px solid var(--color-card-border);border-radius:20px;padding:28px;width:460px;max-width:95vw;max-height:92vh;overflow-y:auto;box-shadow:0 12px 50px rgba(100,70,30,0.2);}
+    .gf-card::-webkit-scrollbar{width:4px;}
+    .gf-card::-webkit-scrollbar-thumb{background:rgba(184,106,42,0.25);border-radius:2px;}
+    .gf-card h2{font-family:var(--font-display);font-size:1.08rem;font-weight:700;color:var(--color-text-primary);margin-bottom:4px;}
+    .gf-intro{font-size:0.79rem;color:var(--color-text-muted);margin-bottom:16px;}
+    .gf-connecting{display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(184,106,42,0.08);border:1px solid rgba(184,106,42,0.2);border-radius:8px;margin-bottom:16px;font-size:0.82rem;color:var(--color-text-secondary);}
+    .gf-connecting strong{color:var(--accent);}
+
+    /* ── VIEW TOGGLE ── */
+    #view-toggle{position:absolute;top:14px;left:14px;background:var(--color-card-bg);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--color-card-border);border-radius:10px;display:flex;overflow:hidden;box-shadow:0 4px 16px rgba(100,70,30,0.1);z-index:5;}
+    .vtab{padding:7px 14px;border:none;cursor:pointer;font-size:0.79rem;font-weight:600;font-family:var(--font-body);background:transparent;color:var(--color-text-muted);transition:background 0.15s,color 0.15s;}
+    .vtab.active{background:var(--accent);color:#fff;}
+    .vtab:hover:not(.active){background:rgba(210,185,155,0.3);}
+
+    /* ── CONSTELLATION EMPTY STATE ── */
+    #constellation-empty{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;}
+    #constellation-empty .big{font-size:3rem;margin-bottom:10px;}
+    #constellation-empty p{font-family:var(--font-display);font-size:0.95rem;color:var(--color-text-secondary);}
+
+    /* ── LINK TOOLTIP ── */
+    #link-tooltip{position:fixed;pointer-events:none;display:none;background:var(--color-card-bg);backdrop-filter:blur(10px);border:1px solid var(--color-card-border);border-radius:7px;padding:5px 10px;font-size:0.77rem;font-family:var(--font-body);color:var(--color-text-secondary);box-shadow:0 4px 14px rgba(100,70,30,0.12);z-index:9000;white-space:nowrap;}
+
+    /* ── AUTO-LINKED BADGE ── */
+    .auto-badge{display:inline-block;font-size:0.6rem;font-weight:600;background:rgba(184,106,42,0.1);color:var(--color-text-muted);border:1px solid rgba(184,106,42,0.18);border-radius:4px;padding:1px 5px;margin-left:4px;vertical-align:middle;}
+
+    /* Night overrides for new elements */
+    body.night .vf-card,body.night .gf-card{background:rgba(12,8,26,0.97);}
+    body.night .vf-input{background:rgba(22,15,44,0.8);color:var(--color-text-primary);}
+    body.night .vr-match:hover{background:rgba(60,40,100,0.3);}
+    body.night #link-tooltip{background:rgba(14,10,30,0.96);}
+    body.night .vtab.active{background:var(--accent);}
+    body.night .gf-connecting{background:rgba(100,72,165,0.12);border-color:rgba(100,72,165,0.25);}
+  </style>
+</head>
+<body class="locked">
+
+<!-- ═══════ INVITE GATE ═══════ -->
+<div id="invite-gate" class="hidden">
+  <div class="gate-lock">🔒</div>
+  <h1>This tree is private</h1>
+  <p>You need a private invite link to access this page.</p>
+</div>
+
+<!-- ═══════ VERIFY OVERLAY ═══════ -->
+<div id="verify-overlay" class="hidden">
+  <div class="vf-card">
+    <div class="vf-emoji">💒</div>
+    <div class="vf-title" id="vf-title">Welcome to the Wedding Tree</div>
+    <div class="vf-sub">Before you explore, tell us who you know.<br>Type the name of someone already on the tree.</div>
+    <input class="vf-input" id="vf-search" type="text" placeholder="Start typing a name…" oninput="verifySearch(this.value)" autocomplete="off">
+    <div class="vf-results" id="vf-results"></div>
+    <div class="vf-admin-link" onclick="openAdminFromVerify()">Admin access →</div>
+  </div>
+</div>
+
+<!-- ═══════ GUEST FORM OVERLAY ═══════ -->
+<div id="guest-form-overlay" class="hidden">
+  <div class="gf-card">
+    <h2>✨ Join the family tree</h2>
+    <div class="gf-intro">Tell us about yourself — your profile appears on the tree right away.</div>
+    <div class="gf-connecting">🔗 Connecting you to: <strong id="gf-verified-name"></strong></div>
+    <div class="fg">
+      <label>Your full name *</label>
+      <input type="text" id="gf-name" placeholder="e.g. Priya Sharma">
+    </div>
+    <div class="fg" id="gf-side-group">
+      <label>Family side</label>
+      <select id="gf-side">
+        <option value="g1" id="gf-opt-g1">Groom 1's side</option>
+        <option value="g2" id="gf-opt-g2">Groom 2's side</option>
+        <option value="both">Both sides / Shared</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label>Connection type</label>
+      <select id="gf-conn-type" onchange="updateGuestConnType()">
+        <option value="biological">Biological</option>
+        <option value="step">Step</option>
+        <option value="half">Half</option>
+        <option value="friend">Friend / Honorary</option>
+      </select>
+    </div>
+    <div class="fg" id="gf-struct-group">
+      <label>I am their…</label>
+      <select id="gf-struct-rel">
+        <option value="child">Child (they are my parent)</option>
+        <option value="parent">Parent (they are my child)</option>
+        <option value="sibling">Sibling</option>
+        <option value="partner">Partner / Spouse</option>
+        <option value="other">Other / Distant</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label>Relationship label <span style="font-weight:400;text-transform:none;font-size:0.9em">(e.g. "daughter", "stepmother", "family friend")</span></label>
+      <input type="text" id="gf-rel-label" placeholder="how they'd describe your relation">
+    </div>
+    <div class="fg">
+      <label>Photo (optional)</label>
+      <div class="photo-drop" onclick="document.getElementById('gf-photo-file').click()">
+        <img id="gf-photo-thumb" class="photo-thumb" alt="">
+        <div id="gf-photo-hint"><div style="font-size:1.6rem">📷</div><div style="font-size:0.78rem;color:var(--color-text-muted);margin-top:4px">Tap to add a photo</div></div>
+      </div>
+      <input type="file" id="gf-photo-file" accept="image/*" capture="environment" class="hidden" onchange="handleGuestPhoto(event)">
+    </div>
+    <div class="fg">
+      <label>Birth year (optional)</label>
+      <input type="number" id="gf-birth-year" placeholder="e.g. 1985" min="1900" max="2025">
+    </div>
+    <div class="fg">
+      <label>A note about yourself (optional)</label>
+      <textarea id="gf-note" rows="2" placeholder="A fun fact, how you know them, anything…"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="backToVerify()">← Back</button>
+      <button class="btn btn-primary" onclick="saveGuest()">Join the tree 🌳</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ LINK TOOLTIP ═══════ -->
+<div id="link-tooltip"></div>
+
+<!-- ═══════════════════ SIDEBAR ═══════════════════ -->
+<div id="sidebar">
+  <div id="sidebar-header">
+    <div>
+      <h1>💒 <span id="title-text">Wedding Tree</span></h1>
+      <p>Click a person · Drag nodes · Scroll to zoom</p>
+    </div>
+    <div class="header-btns">
+      <button class="icon-btn" id="lock-btn"  onclick="toggleLock()"  title="Lock / Unlock editing">🔒</button>
+      <button class="icon-btn" id="night-btn" onclick="toggleNight()" title="Toggle night mode">🌙</button>
+      <button class="icon-btn" onclick="openSettings()" title="Settings">⚙</button>
+    </div>
+  </div>
+
+  <div id="sidebar-actions">
+    <button class="btn btn-primary edit-only" onclick="guardedAction(openPersonModal)">＋ Add Person</button>
+    <button class="btn btn-secondary edit-only" onclick="guardedAction(openRelModal)">🔗 Link Two People</button>
+  </div>
+
+  <div id="side-filter">
+    <button class="stab active" data-side="all"  onclick="setSideFilter('all',this)">All</button>
+    <button class="stab g1"    id="tab-g1" data-side="g1"   onclick="setSideFilter('g1',this)">Groom 1</button>
+    <button class="stab g2"    id="tab-g2" data-side="g2"   onclick="setSideFilter('g2',this)">Groom 2</button>
+    <button class="stab"       data-side="both" onclick="setSideFilter('both',this)">Shared</button>
+  </div>
+
+  <div id="search-wrap">
+    <input type="text" id="search-box" placeholder="Search people…" oninput="filterList(this.value)">
+  </div>
+
+  <div id="person-list"></div>
+
+  <div id="sidebar-footer">
+    <button class="btn btn-secondary btn-sm" style="flex:1" onclick="doExport()">⬆ Export</button>
+    <button class="btn btn-secondary btn-sm" style="flex:1" onclick="guardedAction(()=>document.getElementById('file-import').click())">⬇ Import</button>
+    <input type="file" id="file-import" accept=".json" class="hidden" onchange="doImport(event)">
+  </div>
+</div>
+
+<!-- ═══════════════════ MAIN GRAPH ═══════════════════ -->
+<div id="main">
+  <div id="lock-banner">
+    🔒 View-only — <button onclick="toggleLock()">Unlock to edit</button>
+  </div>
+
+  <div id="empty-state">
+    <div class="big">🌳</div>
+    <p>Add your first person to get started</p>
+  </div>
+
+
+  <div id="view-toggle">
+    <button class="vtab active" id="vtab-family" onclick="setView('family')">🌳 Family</button>
+    <button class="vtab" id="vtab-friends" onclick="setView('friends')">✨ Friends</button>
+  </div>
+  <div id="constellation-empty">
+    <div class="big">✨</div>
+    <p>No friends added yet</p>
+  </div>
+  <svg id="graph-svg"></svg>
+
+  <div id="zoom-controls">
+    <button class="z-btn" onclick="zoomStep(1.35)">＋</button>
+    <button class="z-btn" onclick="zoomStep(1/1.35)">−</button>
+    <button class="z-btn" onclick="zoomReset()">⊙</button>
+  </div>
+
+  <div id="legend">
+    <h3>Relationships</h3>
+    <div id="legend-body"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ DETAIL PANEL ═══════════════════ -->
+<div id="detail-panel"><div id="detail-inner"></div></div>
+
+<!-- ═══════════════════ TOAST ═══════════════════ -->
+<div id="toast"></div>
+
+<!-- ══════════════ PIN MODAL ══════════════ -->
+<div class="overlay hidden" id="pin-modal">
+  <div class="modal narrow">
+    <h2>🔐 Enter PIN to edit</h2>
+    <div class="pin-display" id="pin-display">––––</div>
+    <div class="pin-grid" id="pin-grid"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closePinModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ SET PIN MODAL ══════════════ -->
+<div class="overlay hidden" id="setpin-modal">
+  <div class="modal narrow">
+    <h2>🔑 Set Admin PIN</h2>
+    <p style="font-size:0.83rem;color:var(--color-text-muted);margin-bottom:14px">
+      Choose a 4-digit PIN. Anyone who wants to add or edit people will need this.
+    </p>
+    <div class="fg">
+      <label>New PIN (4 digits)</label>
+      <input type="password" inputmode="numeric" maxlength="4" id="new-pin" placeholder="e.g. 1234">
+    </div>
+    <div class="fg">
+      <label>Confirm PIN</label>
+      <input type="password" inputmode="numeric" maxlength="4" id="confirm-pin" placeholder="repeat PIN">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeSetPinModal()">Cancel</button>
+      <button class="btn btn-primary"   onclick="savePin()">Set PIN</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ SETTINGS MODAL ══════════════ -->
+<div class="overlay hidden" id="settings-modal">
+  <div class="modal">
+    <h2>⚙ Settings</h2>
+    <div class="settings-section">
+      <h3>The Grooms</h3>
+      <div class="fg">
+        <label>Groom 1 Name</label>
+        <input type="text" id="s-g1" placeholder="e.g. James">
+      </div>
+      <div class="fg" style="margin-bottom:0">
+        <label>Groom 2 Name</label>
+        <input type="text" id="s-g2" placeholder="e.g. Carlos">
+      </div>
+      <div class="side-preview">
+        <div class="side-pill" style="background:rgba(184,80,112,0.12);color:var(--g1-color);border:1px solid rgba(184,80,112,0.25)" id="prev-g1">Groom 1's side</div>
+        <div class="side-pill" style="background:rgba(58,158,122,0.12);color:var(--g2-color);border:1px solid rgba(58,158,122,0.25)" id="prev-g2">Groom 2's side</div>
+      </div>
+    </div>
+    <div class="settings-section">
+      <h3>Guest Invite Code</h3>
+      <p style="font-size:0.82rem;color:var(--color-text-muted);margin-bottom:10px">Guests must visit with <code style="font-size:0.8em;background:rgba(184,106,42,0.1);padding:1px 5px;border-radius:4px">?invite=CODE</code> in the URL.</p>
+      <div class="fg" style="margin-bottom:0">
+        <label>Invite Code</label>
+        <input type="text" id="s-invite" placeholder="e.g. LEEKAYE2026">
+      </div>
+    </div>
+    <div class="settings-section" style="border-bottom:none;margin-bottom:0">
+      <h3>Admin PIN</h3>
+      <p style="font-size:0.82rem;color:var(--color-text-muted);margin-bottom:10px">
+        Prevents guests from accidentally adding or editing people. Leave unset to disable.
+      </p>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary btn-sm" onclick="openSetPinFromSettings()">
+          <span id="pin-status-label">Set PIN…</span>
+        </button>
+        <button class="btn btn-danger btn-sm" id="clear-pin-btn" onclick="clearPin()" style="display:none">Clear PIN</button>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeSettings()">Cancel</button>
+      <button class="btn btn-primary"   onclick="saveSettings()">Save Settings</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ ADD PERSON MODAL ══════════════ -->
+<div class="overlay hidden" id="person-modal">
+  <div class="modal">
+    <h2 id="person-modal-title">Add Person</h2>
+    <div class="fg">
+      <label>Photo</label>
+      <div class="photo-drop" onclick="document.getElementById('photo-file').click()">
+        <img id="photo-thumb" class="photo-thumb" alt="Preview">
+        <div id="photo-hint">
+          <div style="font-size:1.8rem">📷</div>
+          <div style="font-size:0.8rem;color:var(--color-text-muted);margin-top:4px">Tap to capture or upload a photo</div>
+        </div>
+      </div>
+      <input type="file" id="photo-file" accept="image/*" capture="environment" class="hidden" onchange="handlePhoto(event)">
+    </div>
+    <div class="fg">
+      <label>Full Name *</label>
+      <input type="text" id="p-name" placeholder="e.g. Sarah Johnson">
+    </div>
+    <div class="fg">
+      <label>Role at Wedding</label>
+      <select id="p-role"></select>
+    </div>
+    <div class="fg">
+      <label>Side</label>
+      <select id="p-side"></select>
+    </div>
+    <div class="fg">
+      <label>Notes (optional)</label>
+      <textarea id="p-notes" rows="2" placeholder="Anything worth noting…"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closePersonModal()">Cancel</button>
+      <button class="btn btn-primary" id="person-save-btn" onclick="savePerson()">Add Person</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ ADD RELATIONSHIP MODAL ══════════════ -->
+<div class="overlay hidden" id="rel-modal">
+  <div class="modal">
+    <h2>Link Two People</h2>
+    <div class="fg"><label>Person A</label><select id="r-a"></select></div>
+    <div class="fg">
+      <label>Relationship Type</label>
+      <select id="r-type" onchange="updateDirNote()">
+        <option value="parent-child">Parent → Child</option>
+        <option value="spouse">Spouse / Partner</option>
+        <option value="sibling">Sibling</option>
+        <option value="step-parent-child">Step-Parent → Step-Child</option>
+        <option value="half-sibling">Half-Sibling</option>
+        <option value="in-law">In-Law</option>
+        <option value="cousin">Cousin</option>
+        <option value="aunt-uncle">Aunt / Uncle → Niece / Nephew</option>
+        <option value="friend">Friend</option>
+        <option value="coworker">Coworker</option>
+        <option value="grandparent-grandchild">Grandparent → Grandchild</option>
+        <option value="other">Other Connection</option>
+      </select>
+    </div>
+    <div class="dir-note hidden" id="dir-note"></div>
+    <div class="fg"><label>Person B</label><select id="r-b"></select></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeRelModal()">Cancel</button>
+      <button class="btn btn-primary"   onclick="saveRel()">Link People</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script>
+// ═══════════════════════════════════════════
+// RELATIONSHIP TYPES  (warm palette)
+// ═══════════════════════════════════════════
+const RT = {
+  'parent-child':      { label:'Parent / Child',      color:'#5a80a8', directed:true,  aLabel:'Parent of',      bLabel:'Child of' },
+  'spouse':            { label:'Spouse / Partner',    color:'#b05070', directed:false, aLabel:'Spouse of',      bLabel:'Spouse of' },
+  'sibling':           { label:'Sibling',             color:'#4a8a68', directed:false, aLabel:'Sibling of',     bLabel:'Sibling of' },
+  'step-parent-child': { label:'Step-Parent / Child', color:'#b07030', directed:true,  aLabel:'Step-parent of', bLabel:'Step-child of' },
+  'half-sibling':      { label:'Half-Sibling',        color:'#a08040', directed:false, aLabel:'Half-sibling of',bLabel:'Half-sibling of' },
+  'in-law':            { label:'In-Law',              color:'#7a5090', directed:false, aLabel:'In-law of',      bLabel:'In-law of' },
+  'cousin':            { label:'Cousin',              color:'#3a8898', directed:false, aLabel:'Cousin of',      bLabel:'Cousin of' },
+  'aunt-uncle':        { label:'Aunt / Uncle',        color:'#3a9088', directed:true,  aLabel:'Aunt/Uncle of',  bLabel:'Niece/Nephew of' },
+  'friend':            { label:'Friend',              color:'#806858', directed:false, aLabel:'Friend of',      bLabel:'Friend of' },
+  'coworker':          { label:'Coworker',            color:'#907870', directed:false, aLabel:'Coworker of',    bLabel:'Coworker of' },
+  'grandparent-grandchild': { label:'Grandparent / Grandchild', color:'#7060a0', directed:true, aLabel:'Grandparent of', bLabel:'Grandchild of' },
+  'other':             { label:'Other Connection',    color:'#908878', directed:false, aLabel:'Connected to',   bLabel:'Connected to' },
+};
+
+const SIDE_COLORS = {
+  g1: '#b85070', g2: '#3a9e7a', both: '#8060a8',
+  friend: '#b87030', '': '#a09080'
+};
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let db = { people:[], rels:[], settings:{ g1Name:'Groom 1', g2Name:'Groom 2', pin:'', inviteCode:'LEEKAYE2026' } };
+let selectedId  = null;
+let editingId   = null;
+let tempPhoto   = null;
+let sideFilter  = 'all';
+let searchQ     = '';
+let isLocked    = true;
+let pinCallback = null;
+let pinBuffer   = '';
+let isNight     = false;  // set before initGraph so colour fns are ready
+let currentView = 'family';
+let verifiedPersonId = null;
+let tempGuestPhoto = null;
+
+// ═══════════════════════════════════════════
+// STORAGE
+// ═══════════════════════════════════════════
+function load() {
+  try {
+    const s = localStorage.getItem('wt3');
+    if (s) {
+      const p = JSON.parse(s);
+      db.people   = p.people   || [];
+      db.rels     = p.rels     || [];
+      db.settings = { g1Name:'Groom 1', g2Name:'Groom 2', pin:'', inviteCode:'LEEKAYE2026', ...(p.settings||{}) };
+    }
+  } catch(e) {}
+}
+function save() { localStorage.setItem('wt3', JSON.stringify(db)); }
+
+// ═══════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════
+function uid() { return '_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function initials(name) { return name.split(' ').map(w=>w[0]||'').slice(0,2).join('').toUpperCase(); }
+function g1() { return db.settings.g1Name || 'Groom 1'; }
+function g2() { return db.settings.g2Name || 'Groom 2'; }
+
+function sideLabel(k) {
+  if (k==='g1')     return g1()+"'s side";
+  if (k==='g2')     return g2()+"'s side";
+  if (k==='both')   return 'Both sides';
+  if (k==='friend') return 'Friend of the couple';
+  return '';
+}
+
+function refreshUI() {
+  document.getElementById('tab-g1').textContent = g1();
+  document.getElementById('tab-g2').textContent = g2();
+  document.getElementById('title-text').textContent = `${g1()} & ${g2()}`;
+
+  document.getElementById('p-side').innerHTML = `
+    <option value="">Select side…</option>
+    <option value="g1">${g1()}'s side</option>
+    <option value="g2">${g2()}'s side</option>
+    <option value="both">Both sides</option>
+    <option value="friend">Friend of the couple</option>
+  `;
+
+  const roles = ['', g1(), g2(), 'Best Man', 'Groomsman', 'Flower Girl',
+    'Ring Bearer', 'Officiant',
+    `Parent of ${g1()}`, `Parent of ${g2()}`,
+    `Sibling of ${g1()}`, `Sibling of ${g2()}`,
+    'Grandparent', 'Guest', 'Other'];
+  document.getElementById('p-role').innerHTML =
+    [...new Set(roles)].map(r=>`<option value="${r}">${r||'Select role…'}</option>`).join('');
+}
+
+// ═══════════════════════════════════════════
+// LOCK / PIN SYSTEM
+// ═══════════════════════════════════════════
+function toggleLock() {
+  if (isLocked) {
+    db.settings.pin ? openPinModal(()=>{ unlock(); }) : unlock();
+  } else { lock(); }
+}
+function lock() {
+  isLocked = true;
+  document.body.classList.add('locked');
+  const b = document.getElementById('lock-btn');
+  b.textContent = '🔒'; b.className = 'icon-btn locked';
+}
+function unlock() {
+  isLocked = false;
+  document.body.classList.remove('locked');
+  const b = document.getElementById('lock-btn');
+  b.textContent = '🔓'; b.className = 'icon-btn unlocked';
+  toast('Editing unlocked');
+  if (selectedId) showPanel(selectedId); // refresh panel to show edit buttons
+}
+function guardedAction(fn) {
+  if (!isLocked) { fn(); return; }
+  db.settings.pin ? openPinModal(()=>{ unlock(); fn(); }) : (unlock(), fn());
+}
+
+function openPinModal(cb) {
+  pinBuffer=''; pinCallback=cb; updatePinDisplay(); buildPinPad();
+  document.getElementById('pin-modal').classList.remove('hidden');
+}
+function closePinModal() {
+  document.getElementById('pin-modal').classList.add('hidden');
+  pinBuffer=''; pinCallback=null;
+}
+function buildPinPad() {
+  const grid=document.getElementById('pin-grid'); grid.innerHTML='';
+  ['1','2','3','4','5','6','7','8','9','⌫','0','✓'].forEach(k=>{
+    const b=document.createElement('button'); b.className='pin-key';
+    b.textContent=k; b.onclick=()=>pinKeyPress(k); grid.appendChild(b);
+  });
+}
+function updatePinDisplay() {
+  document.getElementById('pin-display').textContent =
+    '●'.repeat(pinBuffer.length) + '–'.repeat(Math.max(0,4-pinBuffer.length));
+}
+function pinKeyPress(k) {
+  if (k==='⌫') { pinBuffer=pinBuffer.slice(0,-1); updatePinDisplay(); return; }
+  if (k==='✓') { checkPin(); return; }
+  if (pinBuffer.length<6) { pinBuffer+=k; updatePinDisplay(); }
+  if (pinBuffer.length===4 && db.settings.pin.length===4) checkPin();
+}
+function checkPin() {
+  if (pinBuffer===db.settings.pin) {
+    closePinModal(); if (pinCallback) pinCallback();
+  } else {
+    const d=document.getElementById('pin-display');
+    d.style.color='#b83232';
+    setTimeout(()=>{ d.style.color=''; pinBuffer=''; updatePinDisplay(); }, 700);
+    toast('Incorrect PIN');
+  }
+}
+
+function openSetPinFromSettings() { closeSettings(); openSetPinModal(); }
+function openSetPinModal() {
+  document.getElementById('new-pin').value='';
+  document.getElementById('confirm-pin').value='';
+  document.getElementById('setpin-modal').classList.remove('hidden');
+  setTimeout(()=>document.getElementById('new-pin').focus(),80);
+}
+function closeSetPinModal() { document.getElementById('setpin-modal').classList.add('hidden'); }
+function savePin() {
+  const a=document.getElementById('new-pin').value.trim();
+  const b=document.getElementById('confirm-pin').value.trim();
+  if (!/^\d{4}$/.test(a)) { toast('PIN must be exactly 4 digits'); return; }
+  if (a!==b) { toast("PINs don't match"); return; }
+  db.settings.pin=a; save(); closeSetPinModal(); updatePinStatusLabel(); toast('PIN set ✓');
+}
+function clearPin() {
+  if (!confirm('Remove PIN protection?')) return;
+  db.settings.pin=''; save(); updatePinStatusLabel(); toast('PIN removed');
+}
+function updatePinStatusLabel() {
+  document.getElementById('pin-status-label').textContent = db.settings.pin ? 'Change PIN…' : 'Set PIN…';
+  document.getElementById('clear-pin-btn').style.display = db.settings.pin ? '' : 'none';
+}
+
+// ═══════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════
+function openSettings() {
+  document.getElementById('s-g1').value = g1();
+  document.getElementById('s-g2').value = g2();
+  document.getElementById('s-invite').value = db.settings.inviteCode || 'LEEKAYE2026';
+  updateSettingsPreview(); updatePinStatusLabel();
+  document.getElementById('settings-modal').classList.remove('hidden');
+}
+function closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); }
+function updateSettingsPreview() {
+  const a=document.getElementById('s-g1').value||'Groom 1';
+  const b=document.getElementById('s-g2').value||'Groom 2';
+  document.getElementById('prev-g1').textContent=a+"'s side";
+  document.getElementById('prev-g2').textContent=b+"'s side";
+}
+document.getElementById('s-g1').addEventListener('input',updateSettingsPreview);
+document.getElementById('s-g2').addEventListener('input',updateSettingsPreview);
+function saveSettings() {
+  db.settings.g1Name=document.getElementById('s-g1').value.trim()||'Groom 1';
+  db.settings.g2Name=document.getElementById('s-g2').value.trim()||'Groom 2';
+  const ic=document.getElementById('s-invite').value.trim();
+  if (ic) db.settings.inviteCode=ic;
+  save(); closeSettings(); refreshUI(); renderList(); renderGraph(); toast('Settings saved');
+}
+
+// ═══════════════════════════════════════════
+// PERSON MODAL
+// ═══════════════════════════════════════════
+function openPersonModal(id=null) {
+  editingId=id; tempPhoto=null;
+  document.getElementById('person-modal').classList.remove('hidden');
+  document.getElementById('person-modal-title').textContent = id?'Edit Person':'Add Person';
+  document.getElementById('person-save-btn').textContent    = id?'Save Changes':'Add Person';
+  const thumb=document.getElementById('photo-thumb');
+  document.getElementById('photo-file').value=''; refreshUI();
+  if (id) {
+    const p=db.people.find(x=>x.id===id);
+    document.getElementById('p-name').value  = p.name;
+    document.getElementById('p-role').value  = p.role||'';
+    document.getElementById('p-side').value  = p.side||'';
+    document.getElementById('p-notes').value = p.notes||'';
+    if (p.photo) { thumb.src=p.photo; thumb.classList.add('show'); document.getElementById('photo-hint').style.display='none'; }
+    else         { thumb.classList.remove('show'); document.getElementById('photo-hint').style.display=''; }
+    tempPhoto=p.photo||null;
+  } else {
+    document.getElementById('p-name').value='';
+    document.getElementById('p-role').value='';
+    document.getElementById('p-side').value='';
+    document.getElementById('p-notes').value='';
+    thumb.classList.remove('show');
+    document.getElementById('photo-hint').style.display='';
+  }
+  setTimeout(()=>document.getElementById('p-name').focus(),80);
+}
+function closePersonModal() {
+  document.getElementById('person-modal').classList.add('hidden');
+  editingId=null; tempPhoto=null;
+}
+function handlePhoto(e) {
+  const file=e.target.files[0]; if (!file) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      const canvas=document.createElement('canvas'), S=220;
+      canvas.width=S; canvas.height=S;
+      const ctx=canvas.getContext('2d');
+      const r=Math.max(S/img.width,S/img.height);
+      ctx.drawImage(img,(S-img.width*r)/2,(S-img.height*r)/2,img.width*r,img.height*r);
+      tempPhoto=canvas.toDataURL('image/jpeg',0.82);
+      const thumb=document.getElementById('photo-thumb');
+      thumb.src=tempPhoto; thumb.classList.add('show');
+      document.getElementById('photo-hint').style.display='none';
+    };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+function savePerson() {
+  const name=document.getElementById('p-name').value.trim();
+  if (!name) { toast('Please enter a name'); return; }
+  if (editingId) {
+    const p=db.people.find(x=>x.id===editingId);
+    Object.assign(p,{ name, role:document.getElementById('p-role').value,
+      side:document.getElementById('p-side').value,
+      notes:document.getElementById('p-notes').value.trim(), photo:tempPhoto });
+  } else {
+    db.people.push({ id:uid(), name,
+      role:document.getElementById('p-role').value,
+      side:document.getElementById('p-side').value,
+      notes:document.getElementById('p-notes').value.trim(),
+      photo:tempPhoto, at:Date.now() });
+  }
+  save(); closePersonModal(); renderList(); renderGraph();
+  toast(editingId?`${name} updated`:`${name} added!`);
+}
+function deletePerson(id) {
+  const p=db.people.find(x=>x.id===id);
+  if (!confirm(`Remove ${p.name} and all their connections?`)) return;
+  db.people=db.people.filter(x=>x.id!==id);
+  db.rels=db.rels.filter(r=>r.a!==id&&r.b!==id);
+  if (selectedId===id) { selectedId=null; closePanel(); }
+  save(); renderList(); renderGraph(); toast('Person removed');
+}
+
+// ═══════════════════════════════════════════
+// RELATIONSHIP MODAL
+// ═══════════════════════════════════════════
+function openRelModal(preselectId=null) {
+  if (db.people.length<2) { toast('Add at least 2 people first'); return; }
+  document.getElementById('rel-modal').classList.remove('hidden');
+  const opts=db.people.map(p=>`<option value="${p.id}">${p.name}${p.role?' ('+p.role+')':''}</option>`).join('');
+  document.getElementById('r-a').innerHTML=opts;
+  document.getElementById('r-b').innerHTML=opts;
+  if (preselectId) {
+    document.getElementById('r-a').value=preselectId;
+    const other=db.people.find(p=>p.id!==preselectId);
+    if (other) document.getElementById('r-b').value=other.id;
+  } else {
+    document.getElementById('r-b').value=db.people[1]?.id||'';
+  }
+  updateDirNote();
+}
+function closeRelModal() { document.getElementById('rel-modal').classList.add('hidden'); }
+function updateDirNote() {
+  const rt=RT[document.getElementById('r-type').value];
+  const note=document.getElementById('dir-note');
+  if (rt.directed) {
+    note.textContent=`Direction: Person A is ${rt.aLabel.replace(' of','').toLowerCase()} → Person B`;
+    note.classList.remove('hidden');
+  } else { note.classList.add('hidden'); }
+}
+function saveRel() {
+  const a=document.getElementById('r-a').value, b=document.getElementById('r-b').value;
+  const type=document.getElementById('r-type').value;
+  if (a===b) { toast("Can't link a person to themselves"); return; }
+  const dup=db.rels.some(r=>r.type===type&&((r.a===a&&r.b===b)||(!RT[type].directed&&r.a===b&&r.b===a)));
+  if (dup) { toast('This relationship already exists'); return; }
+  db.rels.push({id:uid(),a,b,type,connStyle:'biological',relLabel:'',autoLinked:false});
+  save(); closeRelModal(); renderGraph();
+  const pA=db.people.find(p=>p.id===a), pB=db.people.find(p=>p.id===b);
+  toast(`Linked ${pA.name} & ${pB.name}`);
+  if (selectedId===a||selectedId===b) showPanel(selectedId);
+}
+function deleteRel(relId) {
+  if (!confirm('Remove this connection?')) return;
+  db.rels=db.rels.filter(r=>r.id!==relId);
+  save(); renderGraph();
+  if (selectedId) showPanel(selectedId);
+  toast('Connection removed');
+}
+
+// ═══════════════════════════════════════════
+// SIDE FILTER
+// ═══════════════════════════════════════════
+function setSideFilter(val,btn) {
+  sideFilter=val;
+  document.querySelectorAll('.stab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  renderList(); highlightGraphBySide();
+}
+function matchesSideFilter(p) {
+  if (sideFilter==='all')  return true;
+  if (sideFilter==='both') return p.side==='both';
+  return p.side===sideFilter;
+}
+
+// ═══════════════════════════════════════════
+// SIDEBAR LIST
+// ═══════════════════════════════════════════
+function filterList(q) { searchQ=q.toLowerCase(); renderList(); }
+function renderList() {
+  const el=document.getElementById('person-list');
+  const arr=db.people.filter(p=>p.name.toLowerCase().includes(searchQ)&&matchesSideFilter(p));
+  if (!arr.length) {
+    el.innerHTML=`<div style="padding:18px;text-align:center;color:var(--color-text-muted);font-size:0.83rem;font-family:var(--font-body)">
+      ${db.people.length===0?'No people yet':'No matches'}
+    </div>`; return;
+  }
+  el.innerHTML=arr.map(p=>`
+    <div class="person-item ${selectedId===p.id?'active':''}" onclick="selectPerson('${p.id}')">
+      <div class="side-pip" style="background:${SIDE_COLORS[p.side||'']}"></div>
+      <div class="p-avatar">${p.photo?`<img src="${p.photo}" alt="">`:initials(p.name)}</div>
+      <div style="flex:1;min-width:0">
+        <div class="p-name">${p.name}</div>
+        <div class="p-role">${p.role||sideLabel(p.side)||'Guest'}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════
+// DETAIL PANEL
+// ═══════════════════════════════════════════
+function selectPerson(id) { selectedId=id; renderList(); showPanel(id); highlightNode(id); }
+function showPanel(id) {
+  const p=db.people.find(x=>x.id===id); if (!p) return;
+  const conns=db.rels.filter(r=>r.a===id||r.b===id).map(r=>{
+    const isA=r.a===id, oid=isA?r.b:r.a, other=db.people.find(x=>x.id===oid);
+    if (!other) return null;
+    const rt=RT[r.type]||RT['other'];
+    const rtLabel=isA?rt.aLabel:(rt.directed?rt.bLabel:rt.aLabel);
+    return {other, relLabel:r.relLabel||rtLabel, rtLabel, color:rt.color, relId:r.id,
+            connStyle:r.connStyle||'biological', autoLinked:r.autoLinked||false};
+  }).filter(Boolean);
+
+  const editBtns=isLocked?'':`
+    <button class="btn btn-secondary btn-sm" onclick="openPersonModal('${id}')">✎ Edit</button>
+    <button class="btn btn-secondary btn-sm" onclick="openRelModal('${id}')">🔗 Link</button>
+    <button class="btn btn-danger btn-sm"    onclick="deletePerson('${id}')">🗑</button>`;
+
+  const side=sideLabel(p.side), sc=SIDE_COLORS[p.side||''];
+  document.getElementById('detail-inner').innerHTML=`
+    <div class="dp-topbar">
+      <button class="btn btn-secondary btn-sm" onclick="closePanel()">✕</button>
+      <div style="display:flex;gap:6px">${editBtns}</div>
+    </div>
+    <div class="dp-photo">${p.photo?`<img src="${p.photo}" alt="">`:initials(p.name)}</div>
+    <div class="dp-name">${p.name}</div>
+    <div class="dp-meta">${p.role||''}${p.role&&side?' · ':''}${side?`<span style="color:${sc}">${side}</span>`:''}</div>
+    ${p.notes?`<div class="dp-notes">${p.notes}</div>`:''}
+    <div class="dp-section">
+      <h3>Connections (${conns.length})</h3>
+      ${conns.length===0
+        ?`<div style="color:var(--color-text-muted);font-size:0.83rem">No connections yet${isLocked?'.':' — use the Link button above.'}</div>`
+        :conns.map(c=>`
+          <div class="conn-item" onclick="selectPerson('${c.other.id}')">
+            <div class="conn-av">${c.other.photo?`<img src="${c.other.photo}" alt="">`:initials(c.other.name)}</div>
+            <div style="flex:1">
+              <div class="conn-name">${c.other.name}</div>
+              <div class="conn-rel" style="color:${c.color}">${c.relLabel}${c.autoLinked?'<span class="auto-badge">auto</span>':''}</div>
+            </div>
+            ${!isLocked?`<button class="btn btn-danger btn-sm" style="padding:3px 7px;font-size:0.7rem"
+              onclick="event.stopPropagation();deleteRel('${c.relId}')">✕</button>`:''}
+          </div>`).join('')
+      }
+    </div>`;
+  document.getElementById('detail-panel').classList.add('open');
+}
+function closePanel() {
+  document.getElementById('detail-panel').classList.remove('open');
+  selectedId=null; renderList(); clearHighlight();
+}
+
+// ═══════════════════════════════════════════
+// D3 GRAPH
+// ═══════════════════════════════════════════
+let svgSel, gMain, sim, zoomBeh;
+
+// Node appearance — dynamic per theme
+function nodeFill()      { return isNight ? 'rgba(20,14,40,0.96)'   : 'rgba(252,248,240,0.95)'; }
+function nodeFillSel()   { return isNight ? 'rgba(30,20,58,1)'      : 'rgba(254,248,238,1)'; }
+function labelFill()     { return isNight ? '#ede8fc'               : '#2a1f14'; }
+function initialsColor() { return isNight ? '#9888c8'               : '#6a5040'; }
+function connectorCol()  { return isNight ? 'rgba(120,88,185,0.55)' : 'rgba(160,120,70,0.55)'; }
+const CONNECTOR_W = 1.5;
+
+function initGraph() {
+  const el=document.getElementById('graph-svg');
+  svgSel=d3.select('#graph-svg'); svgSel.selectAll('*').remove();
+
+  const defs=svgSel.append('defs');
+
+  // Subtle drop shadow for nodes
+  const f=defs.append('filter').attr('id','node-shadow').attr('x','-30%').attr('y','-30%').attr('width','160%').attr('height','160%');
+  f.append('feDropShadow').attr('dx',0).attr('dy',2).attr('stdDeviation',3).attr('flood-color','rgba(100,60,20,0.18)');
+
+  // Arrowhead markers — colour set at render time
+  Object.entries(RT).forEach(([type,rt])=>{
+    if (!rt.directed) return;
+    defs.append('marker').attr('id','arr-'+type)
+      .attr('viewBox','0 -5 10 10').attr('refX',30).attr('refY',0)
+      .attr('markerWidth',6).attr('markerHeight',6).attr('orient','auto')
+      .append('path').attr('d','M0,-5L10,0L0,5')
+      .attr('fill', connectorCol()).attr('opacity',1);
+  });
+
+  zoomBeh=d3.zoom().scaleExtent([0.08,4])
+    .on('zoom',e=>gMain.attr('transform',e.transform));
+  svgSel.call(zoomBeh);
+  svgSel.on('click',()=>closePanel());
+
+  gMain=svgSel.append('g');
+  gMain.append('g').attr('class','g-links');
+  gMain.append('g').attr('class','g-link-hit');
+  gMain.append('g').attr('class','g-lbls');
+  gMain.append('g').attr('class','g-nodes');
+
+  sim=d3.forceSimulation()
+    .force('link',d3.forceLink().id(d=>d.id).distance(165))
+    .force('charge',d3.forceManyBody().strength(-520))
+    .force('center',d3.forceCenter(el.clientWidth/2, el.clientHeight/2))
+    .force('collide',d3.forceCollide(48));
+}
+
+function nodeRingColor(d) {
+  if (d.id===selectedId) return 'rgba(184,106,42,0.9)';
+  const p=db.people.find(x=>x.id===d.id);
+  return SIDE_COLORS[p?.side||''] || 'rgba(160,130,100,0.5)';
+}
+
+function renderGraph() {
+  if (!svgSel) initGraph();
+  document.getElementById('empty-state').style.display = db.people.length===0 ? 'flex' : 'none';
+
+  const posMap={};
+  (sim.nodes()||[]).forEach(n=>posMap[n.id]={x:n.x,y:n.y});
+
+  const nodes=db.people.filter(p=>!p.isFriend&&p.side!=='friend').map(p=>({id:p.id,name:p.name,photo:p.photo,side:p.side,...(posMap[p.id]||{})}));
+  const friendIds=new Set(db.people.filter(p=>p.isFriend||p.side==='friend').map(p=>p.id));
+  const links=db.rels.filter(r=>!friendIds.has(r.a)&&!friendIds.has(r.b)).map(r=>({
+    id:r.id, source:r.a, target:r.b, type:r.type,
+    directed:RT[r.type]?.directed||false,
+    rtColor:RT[r.type]?.color||'#806858',
+    label:RT[r.type]?.label||r.type,
+    connStyle:r.connStyle||'biological',
+    relLabel:r.relLabel||'',
+    autoLinked:r.autoLinked||false
+  }));
+
+  // Clip paths
+  const defs=svgSel.select('defs');
+  const clips=defs.selectAll('clipPath.nc').data(nodes,d=>d.id);
+  clips.enter().append('clipPath').attr('class','nc').attr('id',d=>'clip-'+d.id)
+    .append('ellipse').attr('rx',20).attr('ry',27);
+  clips.exit().remove();
+
+  // Links — connector colour is theme-aware, dash style per connStyle
+  const lSel=gMain.select('.g-links').selectAll('line.lk').data(links,d=>d.id);
+  const lEnter=lSel.enter().append('line').attr('class','lk link-line')
+    .on('dblclick',(e,d)=>{ e.stopPropagation(); if(!isLocked) deleteRel(d.id); });
+  lSel.merge(lEnter)
+    .attr('stroke', connectorCol())
+    .attr('stroke-width', CONNECTOR_W)
+    .attr('stroke-dasharray',d=>linkDash(d))
+    .attr('marker-end',d=>d.directed?`url(#arr-${d.type})`:null);
+  lSel.exit().remove();
+
+  // Invisible wide hit-area lines for hover tooltip
+  const lhSel=gMain.select('.g-link-hit').selectAll('line.lhk').data(links,d=>d.id);
+  const lhEnter=lhSel.enter().append('line').attr('class','lhk')
+    .attr('stroke','transparent').attr('stroke-width',14)
+    .on('mouseover',(e,d)=>showLinkTip(e,d))
+    .on('mousemove',(e)=>moveLinkTip(e))
+    .on('mouseout',()=>hideLinkTip());
+  lhSel.merge(lhEnter);
+  lhSel.exit().remove();
+
+  // Link labels — coloured by relationship type
+  const llSel=gMain.select('.g-lbls').selectAll('text.ll').data(links,d=>d.id);
+  llSel.enter().append('text').attr('class','ll link-lbl')
+    .merge(llSel)
+    .text(d=>d.label)
+    .attr('fill',d=>d.rtColor)
+    .attr('opacity',0.85);
+  llSel.exit().remove();
+
+  // Nodes
+  const nSel=gMain.select('.g-nodes').selectAll('g.node').data(nodes,d=>d.id);
+
+  const nEnter=nSel.enter().append('g').attr('class','node')
+    .call(d3.drag()
+      .on('start',(e,d)=>{if(!e.active)sim.alphaTarget(0.3).restart();d.fx=d.x;d.fy=d.y;})
+      .on('drag', (e,d)=>{d.fx=e.x;d.fy=e.y;})
+      .on('end',  (e,d)=>{if(!e.active)sim.alphaTarget(0);d.fx=null;d.fy=null;})
+    )
+    .on('click',(e,d)=>{e.stopPropagation();selectPerson(d.id);});
+
+  // Outer ring (side-colour accent) — vertical oval
+  nEnter.append('ellipse').attr('class','node-ring')
+    .attr('rx',23).attr('ry',30)
+    .attr('fill','none').attr('stroke-width',2);
+
+  // Inner card ellipse
+  nEnter.append('ellipse')
+    .attr('rx',21).attr('ry',28)
+    .attr('filter','url(#node-shadow)');
+
+  // Photo or initials
+  nEnter.each(function(d){
+    const g=d3.select(this);
+    if (d.photo) {
+      g.append('image').attr('class','nphoto')
+        .attr('x',-24).attr('y',-32).attr('width',48).attr('height',64)
+        .attr('preserveAspectRatio','xMidYMid slice')
+        .attr('clip-path',`url(#clip-${d.id})`);
+    } else {
+      g.append('text').attr('class','ninitials node-label')
+        .attr('dy','0.35em').attr('font-size',12).attr('font-weight',700)
+        .attr('font-family',"'Noto Serif', serif");
+    }
+  });
+
+  // Name label below node
+  nEnter.append('text').attr('class','node-label nlabel')
+    .attr('dy',42).attr('font-size',11)
+    .attr('font-family',"'Noto Serif', serif");
+
+  const nAll=nSel.merge(nEnter);
+
+  nAll.select('.node-ring')
+    .attr('stroke', nodeRingColor)
+    .attr('stroke-width', d=>d.id===selectedId ? 2.5 : 1.8);
+
+  nAll.select('ellipse:nth-child(2)')
+    .attr('fill', d=>d.id===selectedId ? nodeFillSel() : nodeFill());
+
+  nAll.select('.nphoto').attr('href',d=>d.photo||'');
+  nAll.select('.ninitials').text(d=>initials(d.name)).attr('fill', initialsColor());
+  nAll.select('.nlabel')
+    .text(d=>d.name.split(' ')[0])
+    .attr('fill', labelFill());
+
+  nSel.exit().remove();
+
+  sim.nodes(nodes);
+  sim.force('link').links(links);
+  sim.alpha(0.3).restart();
+
+  sim.on('tick',()=>{
+    gMain.select('.g-links').selectAll('line.lk')
+      .attr('x1',d=>d.source.x).attr('y1',d=>d.source.y)
+      .attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
+    gMain.select('.g-link-hit').selectAll('line.lhk')
+      .attr('x1',d=>d.source.x).attr('y1',d=>d.source.y)
+      .attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
+    gMain.select('.g-lbls').selectAll('text.ll')
+      .attr('x',d=>(d.source.x+d.target.x)/2)
+      .attr('y',d=>(d.source.y+d.target.y)/2);
+    gMain.select('.g-nodes').selectAll('g.node')
+      .attr('transform',d=>`translate(${d.x},${d.y})`);
+  });
+}
+
+function highlightNode(id) {
+  if (!gMain) return;
+  gMain.select('.g-nodes').selectAll('g.node').each(function(d){
+    d3.select(this).select('.node-ring')
+      .attr('stroke', d.id===id ? (isNight ? 'rgba(160,120,220,0.9)' : 'rgba(184,106,42,0.9)') : nodeRingColor(d))
+      .attr('stroke-width', d.id===id ? 2.5 : 1.8);
+    d3.select(this).select('ellipse:nth-child(2)')
+      .attr('fill', d.id===id ? nodeFillSel() : nodeFill());
+  });
+}
+function clearHighlight() {
+  if (!gMain) return;
+  gMain.select('.g-nodes').selectAll('g.node').each(function(d){
+    d3.select(this).select('.node-ring')
+      .attr('stroke', nodeRingColor(d)).attr('stroke-width',1.8);
+    d3.select(this).select('ellipse:nth-child(2)').attr('fill', nodeFill());
+  });
+}
+function highlightGraphBySide() {
+  if (!gMain) return;
+  gMain.select('.g-nodes').selectAll('g.node')
+    .attr('opacity',d=>{
+      if (sideFilter==='all') return 1;
+      const p=db.people.find(x=>x.id===d.id);
+      return matchesSideFilter(p)?1:0.13;
+    });
+}
+
+function zoomStep(k) { svgSel.transition().duration(300).call(zoomBeh.scaleBy,k); }
+function zoomReset() { svgSel.transition().duration(400).call(zoomBeh.transform,d3.zoomIdentity); }
+
+// ═══════════════════════════════════════════
+// LEGEND
+// ═══════════════════════════════════════════
+function renderLegend() {
+  const rtEntries = Object.values(RT).map(rt=>`
+    <div class="leg-row">
+      <div class="leg-line" style="background:${rt.color}"></div>
+      <span style="color:var(--color-text-muted);font-family:var(--font-body)">${rt.label}</span>
+    </div>`).join('');
+  const styleEntries = `
+    <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--color-card-border)">
+      <div class="leg-row"><svg width="22" height="2"><line x1="0" y1="1" x2="22" y2="1" stroke="var(--color-text-muted)" stroke-width="2"/></svg><span style="color:var(--color-text-muted);font-family:var(--font-body)">Biological</span></div>
+      <div class="leg-row"><svg width="22" height="2"><line x1="0" y1="1" x2="22" y2="1" stroke="var(--color-text-muted)" stroke-width="2" stroke-dasharray="8,5"/></svg><span style="color:var(--color-text-muted);font-family:var(--font-body)">Step</span></div>
+      <div class="leg-row"><svg width="22" height="2"><line x1="0" y1="1" x2="22" y2="1" stroke="var(--color-text-muted)" stroke-width="2" stroke-dasharray="8,4,2,4"/></svg><span style="color:var(--color-text-muted);font-family:var(--font-body)">Half</span></div>
+      <div class="leg-row"><svg width="22" height="2"><line x1="0" y1="1" x2="22" y2="1" stroke="var(--color-text-muted)" stroke-width="2" stroke-dasharray="2,6"/></svg><span style="color:var(--color-text-muted);font-family:var(--font-body)">Friend</span></div>
+    </div>`;
+  document.getElementById('legend-body').innerHTML = rtEntries + styleEntries;
+}
+
+// ═══════════════════════════════════════════
+// EXPORT / IMPORT
+// ═══════════════════════════════════════════
+function doExport() {
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(db,null,2)],{type:'application/json'}));
+  a.download=`wedding-tree-${new Date().toISOString().slice(0,10)}.json`;
+  a.click(); toast('Exported!');
+}
+function doImport(e) {
+  const file=e.target.files[0]; if (!file) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try {
+      const d=JSON.parse(ev.target.result);
+      if (!d.people||!d.rels) throw 0;
+      if (db.people.length&&!confirm(`Replace current data (${db.people.length} people)?`)) return;
+      db={people:d.people,rels:d.rels,settings:{...db.settings,...(d.settings||{})}};
+      save(); selectedId=null; refreshUI(); renderList(); renderGraph();
+      toast(`Imported ${db.people.length} people`);
+    } catch { toast('Import failed – invalid file'); }
+    e.target.value='';
+  };
+  reader.readAsText(file);
+}
+
+// ═══════════════════════════════════════════
+// NIGHT MODE
+// ═══════════════════════════════════════════
+function toggleNight() {
+  isNight = !isNight;
+  applyNight();
+  localStorage.setItem('wtNight', isNight ? '1' : '0');
+}
+
+function applyNight() {
+  document.body.classList.toggle('night', isNight);
+  const btn = document.getElementById('night-btn');
+  btn.textContent = isNight ? '☀️' : '🌙';
+  btn.className   = isNight ? 'icon-btn night-on' : 'icon-btn';
+
+  if (isNight) {
+    seedStars();
+  } else {
+    const el = document.getElementById('night-stars');
+    if (el) el.remove();
+  }
+
+  // Re-render so D3 picks up new node/connector colours
+  if (svgSel) {
+    // Reinitialise arrow markers with updated colour
+    const defs = svgSel.select('defs');
+    Object.entries(RT).forEach(([type, rt]) => {
+      if (!rt.directed) return;
+      defs.select('#arr-'+type+' path').attr('fill', connectorCol());
+    });
+    renderGraph();
+  }
+}
+
+function seedStars() {
+  let svg = document.getElementById('night-stars');
+  if (!svg) {
+    svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+    svg.id = 'night-stars';
+    svg.setAttribute('xmlns','http://www.w3.org/2000/svg');
+    document.body.appendChild(svg);
+  }
+  // Regenerate on every call (handles resize)
+  svg.innerHTML = '';
+  const W = window.innerWidth, H = window.innerHeight;
+  const ns = 'http://www.w3.org/2000/svg';
+
+  // Regular stars
+  for (let i = 0; i < 80; i++) {
+    const c = document.createElementNS(ns, 'circle');
+    c.setAttribute('cx', (Math.random() * W).toFixed(1));
+    c.setAttribute('cy', (Math.random() * H * 0.72).toFixed(1));
+    const r = (0.25 + Math.random() * 0.9).toFixed(2);
+    c.setAttribute('r', r);
+    const op = (0.2 + Math.random() * 0.65).toFixed(2);
+    c.setAttribute('fill', `rgba(255,252,240,${op})`);
+    svg.appendChild(c);
+  }
+
+  // A few slightly larger "bright" stars with a soft glow
+  for (let i = 0; i < 8; i++) {
+    const g = document.createElementNS(ns, 'g');
+    const x = (Math.random() * W).toFixed(1);
+    const y = (Math.random() * H * 0.55).toFixed(1);
+    // Glow circle
+    const glow = document.createElementNS(ns, 'circle');
+    glow.setAttribute('cx', x); glow.setAttribute('cy', y);
+    glow.setAttribute('r', (3 + Math.random() * 3).toFixed(1));
+    glow.setAttribute('fill', 'rgba(220,210,255,0.07)');
+    // Core
+    const core = document.createElementNS(ns, 'circle');
+    core.setAttribute('cx', x); core.setAttribute('cy', y);
+    core.setAttribute('r', (0.8 + Math.random() * 0.7).toFixed(2));
+    core.setAttribute('fill', `rgba(255,252,240,${(0.7+Math.random()*0.3).toFixed(2)})`);
+    g.appendChild(glow); g.appendChild(core);
+    svg.appendChild(g);
+  }
+}
+
+// ═══════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════
+let toastT;
+function toast(msg) {
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  clearTimeout(toastT);
+  toastT=setTimeout(()=>el.classList.remove('show'),2600);
+}
+
+// ═══════════════════════════════════════════
+// KEYBOARD
+// ═══════════════════════════════════════════
+document.addEventListener('keydown',e=>{
+  if (e.key==='Escape') { closePersonModal();closeRelModal();closePanel();closePinModal();closeSetPinModal();closeSettings(); }
+  if ((e.metaKey||e.ctrlKey)&&e.key==='n') { e.preventDefault(); guardedAction(openPersonModal); }
+});
+['person-modal','rel-modal','pin-modal','setpin-modal','settings-modal'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',function(e){
+    if(e.target===this){closePersonModal();closeRelModal();closePinModal();closeSetPinModal();closeSettings();}
+  });
+});
+window.addEventListener('resize',()=>{
+  if (!sim) return;
+  const el=document.getElementById('graph-svg');
+  sim.force('center',d3.forceCenter(el.clientWidth/2,el.clientHeight/2));
+  sim.alpha(0.1).restart();
+  if (isNight) seedStars();
+});
+
+
+// ═══════════════════════════════════════════
+// LINK DASH + TOOLTIP
+// ═══════════════════════════════════════════
+function linkDash(d) {
+  const cs = d.connStyle || 'biological';
+  if (cs === 'step')   return '8,5';
+  if (cs === 'half')   return '8,4,2,4';
+  if (cs === 'friend') return '2,6';
+  return null; // biological = solid
+}
+
+function showLinkTip(e, d) {
+  const tip = document.getElementById('link-tooltip');
+  const rt  = RT[d.type] || RT['other'];
+  const cs  = d.connStyle || 'biological';
+  const csLabel = ({biological:'Biological',step:'Step',half:'Half',friend:'Friend/Honorary'})[cs] || cs;
+  tip.innerHTML = `<strong>${rt.label}</strong><br><span style="opacity:.75">${csLabel}${d.autoLinked ? ' · <em>auto-linked</em>' : ''}</span>`;
+  tip.style.display = 'block';
+  moveLinkTip(e);
+}
+function moveLinkTip(e) {
+  const tip = document.getElementById('link-tooltip');
+  tip.style.left = (e.pageX + 12) + 'px';
+  tip.style.top  = (e.pageY - 28) + 'px';
+}
+function hideLinkTip() {
+  document.getElementById('link-tooltip').style.display = 'none';
+}
+
+// ═══════════════════════════════════════════
+// INVITE GATE
+// ═══════════════════════════════════════════
+function checkInvite() {
+  // Already cleared this session?
+  if (sessionStorage.getItem('wtInviteOk') === '1') return true;
+  const params   = new URLSearchParams(window.location.search);
+  const code     = (params.get('invite') || '').trim().toUpperCase();
+  const expected = (db.settings.inviteCode || 'LEEKAYE2026').trim().toUpperCase();
+  if (code === expected) {
+    sessionStorage.setItem('wtInviteOk', '1');
+    return true;
+  }
+  // Show locked page, hide everything else
+  document.getElementById('invite-gate').classList.remove('hidden');
+  return false;
+}
+
+// ═══════════════════════════════════════════
+// NAME VERIFICATION OVERLAY
+// ═══════════════════════════════════════════
+function showVerifyOverlay() {
+  const ov = document.getElementById('verify-overlay');
+  ov.classList.remove('hidden');
+  const g1 = db.settings.g1Name || 'Groom 1';
+  const g2 = db.settings.g2Name || 'Groom 2';
+  const titleEl = document.getElementById('vf-title');
+  if (titleEl) titleEl.textContent = `Welcome to ${g1} & ${g2}’s Family Tree`;
+  document.getElementById('vf-search').value = '';
+  document.getElementById('vf-results').innerHTML = '';
+  setTimeout(function(){ document.getElementById('vf-search').focus(); }, 80);
+}
+
+function verifySearch(q) {
+  const res = document.getElementById('vf-results');
+  res.innerHTML = '';
+  if (!q || q.trim().length < 1) return;
+  const term = q.trim().toLowerCase();
+  const matches = db.people.filter(function(p){ return p.name && p.name.toLowerCase().includes(term); }).slice(0, 8);
+  if (!matches.length) {
+    res.innerHTML = '<div class="vr-none">No match — try another spelling</div>';
+    return;
+  }
+  matches.forEach(function(p) {
+    const d = document.createElement('div');
+    d.className = 'vr-match';
+    const sideLabel = p.side === 'groom1' ? db.settings.g1Name : p.side === 'groom2' ? db.settings.g2Name : (p.side || '');
+    d.textContent = p.name + (sideLabel ? ' · ' + sideLabel : '');
+    d.onclick = function(){ selectVerifiedPerson(p.id, p.name); };
+    res.appendChild(d);
+  });
+}
+
+function selectVerifiedPerson(pid, pname) {
+  sessionStorage.setItem('wtVerified', pid);
+  verifiedPersonId = pid;
+  document.getElementById('verify-overlay').classList.add('hidden');
+  openGuestForm(pid, pname);
+}
+
+function openAdminFromVerify() {
+  document.getElementById('verify-overlay').classList.add('hidden');
+  openPinModal();
+}
+
+// ═══════════════════════════════════════════
+// GUEST REGISTRATION FORM
+// ═══════════════════════════════════════════
+function openGuestForm(verifiedId, verifiedName) {
+  const ov = document.getElementById('guest-form-overlay');
+  ov.classList.remove('hidden');
+  // Show who they're being linked to
+  const relToEl = document.getElementById('gf-verified-name');
+  if (relToEl) relToEl.textContent = verifiedName || 'selected person';
+  // Populate side labels from actual groom names
+  const g1 = db.settings.g1Name || 'Groom 1';
+  const g2 = db.settings.g2Name || 'Groom 2';
+  const optG1 = document.getElementById('gf-opt-g1');
+  const optG2 = document.getElementById('gf-opt-g2');
+  if (optG1) optG1.textContent = g1 + '’s side';
+  if (optG2) optG2.textContent = g2 + '’s side';
+  // Reset all fields
+  document.getElementById('gf-name').value = '';
+  document.getElementById('gf-birth-year').value = '';
+  document.getElementById('gf-note').value = '';
+  document.getElementById('gf-rel-label').value = '';
+  document.getElementById('gf-conn-type').value = 'biological';
+  document.getElementById('gf-struct-rel').value = 'child';
+  const prev = document.getElementById('gf-photo-thumb');
+  if (prev) { prev.src = ''; prev.style.display = 'none'; }
+  const hint = document.getElementById('gf-photo-hint');
+  if (hint) hint.style.display = 'block';
+  tempGuestPhoto = null;
+  ov.dataset.verifiedId   = verifiedId   || '';
+  ov.dataset.verifiedName = verifiedName || '';
+  updateGuestConnType();
+  setTimeout(function(){ document.getElementById('gf-name').focus(); }, 80);
+}
+
+function closeGuestForm() {
+  document.getElementById('guest-form-overlay').classList.add('hidden');
+}
+
+function backToVerify() {
+  closeGuestForm();
+  showVerifyOverlay();
+}
+
+function updateGuestConnType() {
+  const ctEl = document.getElementById('gf-conn-type');
+  const ct   = ctEl ? ctEl.value : 'biological';
+  const structGroup = document.getElementById('gf-struct-group');
+  if (structGroup) structGroup.style.display = (ct === 'friend') ? 'none' : 'block';
+}
+
+function handleGuestPhoto(evt) {
+  const file = evt.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      const MAX = 400;
+      let w = img.width, h = img.height;
+      if (w > h) { if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; } }
+      else        { if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; } }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      tempGuestPhoto = canvas.toDataURL('image/jpeg', 0.82);
+      const prev = document.getElementById('gf-photo-thumb');
+      const hint = document.getElementById('gf-photo-hint');
+      if (prev) { prev.src = tempGuestPhoto; prev.style.display = 'block'; }
+      if (hint) hint.style.display = 'none';
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function saveGuest() {
+  const name = (document.getElementById('gf-name').value || '').trim();
+  if (!name) { alert('Please enter your full name.'); return; }
+
+  const ov         = document.getElementById('guest-form-overlay');
+  const verifiedId = ov.dataset.verifiedId;
+  const sideEl     = document.getElementById('gf-side');
+  const side       = sideEl ? sideEl.value : 'groom1';
+  const ctEl       = document.getElementById('gf-conn-type');
+  const connType   = ctEl ? ctEl.value : 'biological';
+  const srEl       = document.getElementById('gf-struct-rel');
+  const structRel  = srEl ? srEl.value : 'other';
+  const relLabel   = (document.getElementById('gf-rel-label').value || '').trim();
+  const birthYear  = (document.getElementById('gf-birth-year').value  || '').trim();
+  const selfNote   = (document.getElementById('gf-note').value  || '').trim();
+  const isFriend   = (connType === 'friend');
+
+  const newPerson = {
+    id: uid(), name: name,
+    side: isFriend ? 'friend' : (side === 'g1' ? 'groom1' : side === 'g2' ? 'groom2' : side),
+    isFriend: isFriend,
+    photo: tempGuestPhoto || null,
+    year:  birthYear || null,
+    note:  selfNote  || null,
+    isGuest: true
+  };
+  db.people.push(newPerson);
+  const newId = newPerson.id;
+  sessionStorage.setItem('wtGuestId', newId);
+
+  if (!isFriend && verifiedId) {
+    createDirectRel(newId, verifiedId, structRel, connType, relLabel);
+    if (connType === 'biological') runAutoInference(newId);
+  } else if (isFriend) {
+    // Link friend to both grooms
+    db.people.filter(function(p){ return p.id === 'g1' || p.id === 'g2'; })
+      .forEach(function(g){ makeRel(newId, g.id, 'friend', 'friend', relLabel || 'Friend', true); });
+    if (verifiedId) makeRel(newId, verifiedId, 'friend', 'friend', relLabel || 'Friend', false);
+  }
+
+  save();
+  closeGuestForm();
+  toast('Welcome, ' + name + '! You’ve been added to the tree.');
+  refreshUI(); renderLegend(); renderList(); renderGraph();
+  if (isFriend) setView('friends');
+}
+
+// ═══════════════════════════════════════════
+// RELATIONSHIP HELPERS
+// ═══════════════════════════════════════════
+function makeRel(aId, bId, type, connStyle, relLabel, autoLinked) {
+  db.rels.push({
+    id: uid(), a: aId, b: bId,
+    type: type || 'other',
+    connStyle: connStyle || 'biological',
+    relLabel: relLabel || '',
+    autoLinked: !!autoLinked
+  });
+}
+
+function getBioChildren(pid) {
+  return db.rels
+    .filter(function(r){ return r.connStyle === 'biological' && r.type === 'parent-child' && (r.a === pid || r.b === pid); })
+    .map(function(r){ return r.a === pid ? r.b : null; })
+    .filter(function(id){ return id && id !== pid; });
+}
+
+function getBioParents(pid) {
+  return db.rels
+    .filter(function(r){ return r.connStyle === 'biological' && r.type === 'parent-child' && (r.a === pid || r.b === pid); })
+    .map(function(r){ return r.b === pid ? r.a : null; })
+    .filter(function(id){ return id && id !== pid; });
+}
+
+function getSiblings(pid) {
+  const parents = getBioParents(pid);
+  if (!parents.length) return [];
+  const sibSet = new Set();
+  parents.forEach(function(par){
+    getBioChildren(par).forEach(function(sib){ if (sib !== pid) sibSet.add(sib); });
+  });
+  return Array.from(sibSet);
+}
+
+function relExists(aId, bId, type) {
+  return db.rels.some(function(r){
+    return r.type === type && ((r.a === aId && r.b === bId) || (r.a === bId && r.b === aId));
+  });
+}
+
+function createDirectRel(newId, verifiedId, structRel, connStyle, relLabel) {
+  var rtType = 'other';
+  if (structRel === 'parent')  rtType = 'parent-child';
+  if (structRel === 'child')   rtType = 'parent-child';
+  if (structRel === 'sibling') rtType = 'sibling';
+  if (structRel === 'partner') rtType = 'partner';
+
+  var a = newId, b = verifiedId;
+  if (rtType === 'parent-child') {
+    // directed: a=parent, b=child
+    if (structRel === 'parent') { a = verifiedId; b = newId; }   // verified IS parent of new
+    else                         { a = newId;      b = verifiedId; } // new IS parent of verified
+  }
+
+  if (!relExists(a, b, rtType)) makeRel(a, b, rtType, connStyle, relLabel, false);
+}
+
+function runAutoInference(newId) {
+  // 1. Siblings: other bio children of newId's parents
+  var newParents = getBioParents(newId);
+  newParents.forEach(function(par){
+    getBioChildren(par).forEach(function(sib){
+      if (sib !== newId && !relExists(newId, sib, 'sibling'))
+        makeRel(newId, sib, 'sibling', 'biological', '', true);
+    });
+    // 2. Grandparents
+    getBioParents(par).forEach(function(gpar){
+      if (!relExists(gpar, newId, 'grandparent-grandchild'))
+        makeRel(gpar, newId, 'grandparent-grandchild', 'biological', '', true);
+    });
+    // 3. Aunts/Uncles + 4. Cousins
+    getSiblings(par).forEach(function(uncle){
+      if (!relExists(newId, uncle, 'other'))
+        makeRel(newId, uncle, 'other', 'biological', 'Aunt/Uncle', true);
+      getBioChildren(uncle).forEach(function(cousin){
+        if (!relExists(newId, cousin, 'other'))
+          makeRel(newId, cousin, 'other', 'biological', 'Cousin', true);
+      });
+    });
+  });
+}
+
+// ═══════════════════════════════════════════
+// VIEW TOGGLE + FRIENDS CONSTELLATION
+// ═══════════════════════════════════════════
+function setView(view) {
+  currentView = view;
+  var svgEl   = document.getElementById('graph-svg');
+  var emptyEl = document.getElementById('constellation-empty');
+  var oldCon  = document.getElementById('constellation-svg');
+
+  document.getElementById('vtab-family').classList.toggle('active', view === 'family');
+  document.getElementById('vtab-friends').classList.toggle('active', view === 'friends');
+
+  if (view === 'family') {
+    if (svgEl)   svgEl.style.display  = '';
+    if (oldCon)  oldCon.remove();
+    if (emptyEl) emptyEl.style.display = 'none';
+  } else {
+    if (svgEl) svgEl.style.display = 'none';
+    renderConstellation();
+  }
+}
+
+function renderConstellation() {
+  var friends = db.people.filter(function(p){ return p.isFriend || p.side === 'friend'; });
+  var emptyEl = document.getElementById('constellation-empty');
+  var mainEl  = document.getElementById('main');
+  var old     = document.getElementById('constellation-svg');
+  if (old) old.remove();
+
+  if (!friends.length) {
+    if (emptyEl) emptyEl.style.display = 'flex';
+    return;
+  }
+  if (emptyEl) emptyEl.style.display = 'none';
+
+  var W  = mainEl.clientWidth  || 800;
+  var H  = mainEl.clientHeight || 600;
+  var cx = W / 2, cy = H / 2;
+  var r  = Math.min(W, H) * 0.32;
+
+  var svg = d3.select('#main').append('svg')
+    .attr('id','constellation-svg')
+    .attr('width', W).attr('height', H)
+    .style('position','absolute').style('inset','0').style('z-index','1');
+
+  var g1 = db.settings.g1Name || 'Groom 1';
+  var g2 = db.settings.g2Name || 'Groom 2';
+  svg.append('text')
+    .attr('x', cx).attr('y', cy)
+    .attr('text-anchor','middle').attr('dominant-baseline','middle')
+    .attr('font-family','var(--font-display)').attr('font-size','1.1rem')
+    .attr('fill', isNight ? '#ede8fc' : '#2a1f14').attr('font-weight','600')
+    .text(g1 + ' & ' + g2);
+
+  var defs = svg.append('defs');
+
+  friends.forEach(function(f, i) {
+    var angle = 2 * Math.PI * i / friends.length - Math.PI / 2;
+    var fx = cx + r * Math.cos(angle);
+    var fy = cy + r * Math.sin(angle);
+
+    svg.append('line')
+      .attr('x1', cx).attr('y1', cy)
+      .attr('x2', fx).attr('y2', fy)
+      .attr('stroke', isNight ? 'rgba(160,120,220,0.4)' : 'rgba(160,120,70,0.4)')
+      .attr('stroke-width', 1.5)
+      .attr('stroke-dasharray','2,6');
+
+    var mx = (cx + fx) / 2, my = (cy + fy) / 2;
+    svg.append('text')
+      .attr('x', mx).attr('y', my)
+      .attr('text-anchor','middle').attr('dominant-baseline','middle')
+      .attr('font-size','0.85rem')
+      .attr('fill', isNight ? '#c8a8e8' : '#a07840')
+      .text('❆');
+
+    var ng = svg.append('g').style('cursor','pointer')
+      .on('click', function(){ showPanel(f.id); });
+
+    if (f.photo) {
+      var clipId = 'cp-' + f.id;
+      defs.append('clipPath').attr('id', clipId)
+        .append('circle').attr('r',28).attr('cx',fx).attr('cy',fy);
+      ng.append('image')
+        .attr('href', f.photo)
+        .attr('x', fx-28).attr('y', fy-28)
+        .attr('width',56).attr('height',56)
+        .attr('clip-path','url(#' + clipId + ')');
+    } else {
+      ng.append('circle')
+        .attr('cx',fx).attr('cy',fy).attr('r',28)
+        .attr('fill', isNight ? 'rgba(20,14,40,0.96)' : 'rgba(252,248,240,0.95)')
+        .attr('stroke', isNight ? 'rgba(120,88,185,0.7)' : 'rgba(160,120,70,0.7)')
+        .attr('stroke-width',1.5);
+      var initials = f.name.split(' ').map(function(w){ return w[0] || ''; }).join('').slice(0,2).toUpperCase();
+      ng.append('text')
+        .attr('x',fx).attr('y',fy)
+        .attr('text-anchor','middle').attr('dominant-baseline','middle')
+        .attr('font-size','0.9rem').attr('font-weight','600')
+        .attr('fill', isNight ? '#9888c8' : '#6a5040')
+        .text(initials);
+    }
+
+    svg.append('text')
+      .attr('x', fx).attr('y', fy + 38)
+      .attr('text-anchor','middle')
+      .attr('font-size','0.72rem')
+      .attr('fill', isNight ? '#ede8fc' : '#2a1f14')
+      .text(f.name);
+  });
+}
+
+// ═══════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════
+load();
+// Restore night mode before any rendering so D3 colours are correct from the start
+isNight = localStorage.getItem('wtNight') === '1';
+if (isNight) {
+  document.body.classList.add('night');
+  document.getElementById('night-btn').textContent = '☀️';
+  document.getElementById('night-btn').className   = 'icon-btn night-on';
+}
+// Invite gate — stop here if code invalid
+if (!checkInvite()) {
+  // locked page is showing; do nothing else
+} else {
+  refreshUI(); renderLegend(); renderList(); initGraph(); renderGraph();
+  if (isNight) seedStars();
+  // Name verification — skip if already cleared this session or tree is empty
+  if (!sessionStorage.getItem('wtVerified') && db.people.length > 0) {
+    showVerifyOverlay();
+  }
+}
+</script>
+</body>
+</html>
