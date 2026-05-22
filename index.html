@@ -1288,6 +1288,11 @@ function saveRel() {
   if (dup) { toast('This relationship already exists'); return; }
   const connStyle = (document.getElementById('r-conn-style')?.value) || 'biological';
   db.rels.push({id:uid(),a,b,type,connStyle,relLabel:'',autoLinked:false});
+  // Trigger inference for biological parent-child and sibling rels added via admin
+  if (connStyle === 'biological') {
+    if (type === 'parent-child') runAutoInference(b);
+    else if (type === 'sibling') { runAutoInference(a); runAutoInference(b); }
+  }
   save(); closeRelModal(); renderGraph();
   const pA=db.people.find(p=>p.id===a), pB=db.people.find(p=>p.id===b);
   toast(`Linked ${pA.name} & ${pB.name}`);
@@ -2049,7 +2054,28 @@ function createDirectRel(newId, verifiedId, structRel, connStyle, relLabel) {
   if (!relExists(a, b, rtType)) makeRel(a, b, rtType, connStyle, relLabel, false);
 }
 
-function runAutoInference(newId) {
+function runAutoInference(newId, _depth) {
+  var depth = _depth || 0;
+
+  // Step 0: sync bio parents bidirectionally with explicit sibling rels.
+  // This handles cases like "added as sibling of X" where X already has parents.
+  var mySibRels = db.rels.filter(function(r){
+    return r.type === 'sibling' && (r.a === newId || r.b === newId);
+  });
+  mySibRels.forEach(function(sr){
+    var sibId = sr.a === newId ? sr.b : sr.a;
+    // Inherit their bio parents
+    getBioParents(sibId).forEach(function(parId){
+      if (!relExists(parId, newId, 'parent-child'))
+        makeRel(parId, newId, 'parent-child', 'biological', '', true);
+    });
+    // Give them our bio parents (in case we just got parents from a new link)
+    getBioParents(newId).forEach(function(parId){
+      if (!relExists(parId, sibId, 'parent-child'))
+        makeRel(parId, sibId, 'parent-child', 'biological', '', true);
+    });
+  });
+
   // 1. Siblings: other bio children of newId's parents
   var newParents = getBioParents(newId);
   newParents.forEach(function(par){
@@ -2072,6 +2098,14 @@ function runAutoInference(newId) {
       });
     });
   });
+
+  // Step 5 (depth-0 only): cascade once to newly-inferred siblings so
+  // transitive sibling chains (Ruby ↔ Violet ↔ Simon) all get connected.
+  if (depth === 0) {
+    getSiblings(newId).forEach(function(sibId){
+      runAutoInference(sibId, 1);
+    });
+  }
 }
 
 // ═══════════════════════════════════════════
