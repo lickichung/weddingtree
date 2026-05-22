@@ -1551,7 +1551,8 @@ function renderGraph() {
   sim.on('tick',()=>{
     gMain.select('.g-links').selectAll('line.lk')
       .attr('x1',d=>d.source.x).attr('y1',d=>d.source.y)
-      .attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
+      .attr('x2',d=>d.target.x).attr('y2',d=>d.target.y)
+      .attr('stroke-dasharray',d=>linkDash(d));
     gMain.select('.g-link-hit').selectAll('line.lhk')
       .attr('x1',d=>d.source.x).attr('y1',d=>d.source.y)
       .attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
@@ -2021,8 +2022,10 @@ function createDirectRel(newId, verifiedId, structRel, connStyle, relLabel) {
   var a = newId, b = verifiedId;
   if (rtType === 'parent-child') {
     // directed: a=parent, b=child
-    if (structRel === 'parent') { a = verifiedId; b = newId; }   // verified IS parent of new
-    else                         { a = newId;      b = verifiedId; } // new IS parent of verified
+    // structRel='child'  → "I am their child"  → verified IS parent of new → a=verified, b=new
+    // structRel='parent' → "I am their parent" → new IS parent of verified → a=new,      b=verified
+    if (structRel === 'child')  { a = verifiedId; b = newId; }
+    else                         { a = newId;      b = verifiedId; }
   }
 
   if (!relExists(a, b, rtType)) makeRel(a, b, rtType, connStyle, relLabel, false);
