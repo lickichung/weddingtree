@@ -727,6 +727,7 @@
   <div id="sidebar-actions">
     <button class="btn btn-primary edit-only" onclick="guardedAction(openPersonModal)">＋ Add Person</button>
     <button class="btn btn-secondary edit-only" onclick="guardedAction(openRelModal)">🔗 Link Two People</button>
+    <button class="btn btn-secondary edit-only" onclick="guardedAction(rerunAllInference)" title="Recalculate all auto-inferred siblings, grandparents &amp; cousins">🔄 Re-run Inference</button>
   </div>
 
   <div id="side-filter">
@@ -2105,6 +2106,13 @@ function runAutoInference(newId, _depth) {
     getSiblings(newId).forEach(function(sibId){
       runAutoInference(sibId, 1);
     });
+    // Second pass on self: catch any siblings that were added to parents during cascade
+    getBioParents(newId).forEach(function(par){
+      getBioChildren(par).forEach(function(sib){
+        if (sib !== newId && !relExists(newId, sib, 'sibling'))
+          makeRel(newId, sib, 'sibling', 'biological', '', true);
+      });
+    });
   }
 }
 
@@ -2112,6 +2120,17 @@ function runAutoInference(newId, _depth) {
 // VIEW TOGGLE + FRIENDS CONSTELLATION
 // ═══════════════════════════════════════════
 function setView(v) { currentView = v; }
+
+function rerunAllInference() {
+  // Strip all auto-linked rels, then re-derive from scratch
+  db.rels = db.rels.filter(function(r){ return !r.autoLinked; });
+  // First pass: parent-inheritance from sibling rels for people with no parents
+  db.people.forEach(function(p){ runAutoInference(p.id); });
+  // Second pass: catch any chains that need two hops
+  db.people.forEach(function(p){ runAutoInference(p.id); });
+  save(); renderGraph();
+  toast('Inference re-run ✓ — auto connections rebuilt');
+}
 
 // ═══════════════════════════════════════════
 // BOOT
