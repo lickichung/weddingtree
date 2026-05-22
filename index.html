@@ -994,6 +994,8 @@ let isNight     = false;  // set before initGraph so colour fns are ready
 let currentView = 'family';
 let verifiedPersonId = null;
 let tempGuestPhoto = null;
+let _linkDragSrc = null;
+let _linkDragLine = null;
 
 // ═══════════════════════════════════════════
 // STORAGE
@@ -1249,19 +1251,23 @@ function deletePerson(id) {
 // ═══════════════════════════════════════════
 // RELATIONSHIP MODAL
 // ═══════════════════════════════════════════
-function openRelModal(preselectId=null) {
+function openRelModal(preselectA=null, preselectB=null) {
   if (db.people.length<2) { toast('Add at least 2 people first'); return; }
   document.getElementById('rel-modal').classList.remove('hidden');
   const opts=db.people.map(p=>`<option value="${p.id}">${p.name}${p.role?' ('+p.role+')':''}</option>`).join('');
   document.getElementById('r-a').innerHTML=opts;
   document.getElementById('r-b').innerHTML=opts;
-  if (preselectId) {
-    document.getElementById('r-a').value=preselectId;
-    const other=db.people.find(p=>p.id!==preselectId);
+  if (preselectA && preselectB) {
+    document.getElementById('r-a').value=preselectA;
+    document.getElementById('r-b').value=preselectB;
+  } else if (preselectA) {
+    document.getElementById('r-a').value=preselectA;
+    const other=db.people.find(p=>p.id!==preselectA);
     if (other) document.getElementById('r-b').value=other.id;
   } else {
     document.getElementById('r-b').value=db.people[1]?.id||'';
   }
+  autoConnStyle();
   updateDirNote();
 }
 function closeRelModal() { document.getElementById('rel-modal').classList.add('hidden'); }
@@ -1457,6 +1463,53 @@ function nodeRingColor(d) {
   return SIDE_COLORS[p?.side||''] || 'rgba(160,130,100,0.5)';
 }
 
+// ═══════════════════════════════════════════
+// DRAG-TO-LINK HANDLERS
+// ═══════════════════════════════════════════
+function _linkStart(e, d) {
+  e.sourceEvent.stopPropagation();
+  _linkDragSrc = d;
+  const transform = d3.zoomTransform(svgSel.node());
+  const [mx, my] = transform.invert(d3.pointer(e.sourceEvent, svgSel.node()));
+  _linkDragLine = gMain.append('line').attr('class','link-drag-rubber')
+    .attr('stroke','rgba(184,106,42,0.75)').attr('stroke-width',2.5)
+    .attr('stroke-dasharray','7,4').attr('pointer-events','none')
+    .attr('x1',d.x).attr('y1',d.y).attr('x2',mx).attr('y2',my);
+}
+function _linkMove(e, d) {
+  if (!_linkDragLine) return;
+  const transform = d3.zoomTransform(svgSel.node());
+  const [mx, my] = transform.invert(d3.pointer(e.sourceEvent, svgSel.node()));
+  _linkDragLine.attr('x2',mx).attr('y2',my);
+  // Highlight nearest valid target
+  gMain.select('.g-nodes').selectAll('g.node').each(function(n) {
+    if (n.id === _linkDragSrc.id) return;
+    const dist = Math.hypot(n.x - mx, n.y - my);
+    d3.select(this).select('.node-ring')
+      .attr('stroke', dist < 44 ? 'rgba(80,160,100,0.95)' : nodeRingColor(n))
+      .attr('stroke-width', dist < 44 ? 3 : 1.8);
+  });
+}
+function _linkEnd(e, d) {
+  if (_linkDragLine) { _linkDragLine.remove(); _linkDragLine = null; }
+  const transform = d3.zoomTransform(svgSel.node());
+  const [mx, my] = transform.invert(d3.pointer(e.sourceEvent, svgSel.node()));
+  // Reset highlights
+  gMain.select('.g-nodes').selectAll('g.node').each(function(n) {
+    d3.select(this).select('.node-ring')
+      .attr('stroke', nodeRingColor(n)).attr('stroke-width', 1.8);
+  });
+  // Find node within snap radius
+  let target = null, minDist = 50;
+  sim.nodes().forEach(function(n) {
+    if (n.id === _linkDragSrc.id) return;
+    const dist = Math.hypot(n.x - mx, n.y - my);
+    if (dist < minDist) { minDist = dist; target = n; }
+  });
+  if (target) openRelModal(_linkDragSrc.id, target.id);
+  _linkDragSrc = null;
+}
+
 function renderGraph() {
   if (!svgSel) initGraph();
   document.getElementById('empty-state').style.display = db.people.length===0 ? 'flex' : 'none';
@@ -1520,6 +1573,12 @@ function renderGraph() {
   const nSel=gMain.select('.g-nodes').selectAll('g.node').data(nodes,d=>d.id);
 
   const nEnter=nSel.enter().append('g').attr('class','node')
+    .on('mouseenter', function() {
+      if (!isLocked) d3.select(this).select('.link-handle').attr('opacity',1);
+    })
+    .on('mouseleave', function() {
+      d3.select(this).select('.link-handle').attr('opacity',0);
+    })
     .call(d3.drag()
       .on('start',(e,d)=>{if(!e.active)sim.alphaTarget(0.3).restart();d.fx=d.x;d.fy=d.y;})
       .on('drag', (e,d)=>{d.fx=e.x;d.fy=e.y;})
@@ -1571,6 +1630,14 @@ function renderGraph() {
   nEnter.append('text').attr('class','node-label nlabel')
     .attr('dy',42).attr('font-size',11)
     .attr('font-family',"'Noto Serif', serif");
+
+  // Drag-to-link connector handle (right edge of oval, admin only)
+  nEnter.append('circle').attr('class','link-handle')
+    .attr('cx',24).attr('cy',0).attr('r',6)
+    .attr('fill','rgba(80,160,100,0.85)').attr('stroke','rgba(255,255,255,0.9)').attr('stroke-width',1.5)
+    .attr('opacity',0).attr('cursor','crosshair').attr('title','Drag to link')
+    .call(d3.drag().on('start',_linkStart).on('drag',_linkMove).on('end',_linkEnd))
+    .on('mousedown', e => e.stopPropagation());
 
   // Pin indicator dot (shown when node is manually pinned)
   nEnter.append('circle').attr('class','pin-dot')
