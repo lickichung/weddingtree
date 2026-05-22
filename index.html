@@ -1766,7 +1766,9 @@ function showLinkTip(e, d) {
   const rt  = RT[d.type] || RT['other'];
   const cs  = d.connStyle || 'biological';
   const csLabel = ({biological:'Biological',step:'Step',half:'Half',friend:'Friend/Honorary'})[cs] || cs;
-  tip.innerHTML = `<strong>${rt.label}</strong><br><span style="opacity:.75">${csLabel}${d.autoLinked ? ' · <em>auto-linked</em>' : ''}</span>`;
+  // Use saved relLabel (e.g. "stepbrother") if present, else fall back to generic type label
+  const displayLabel = d.relLabel && d.relLabel.trim() ? d.relLabel.trim() : rt.label;
+  tip.innerHTML = `<strong>${displayLabel}</strong><br><span style="opacity:.75">${csLabel}${d.autoLinked ? ' · <em>auto-linked</em>' : ''}</span>`;
   tip.style.display = 'block';
   moveLinkTip(e);
 }
@@ -2125,7 +2127,7 @@ function renderConstellation() {
       .attr('text-anchor','middle').attr('dominant-baseline','middle')
       .attr('font-size','0.85rem')
       .attr('fill', isNight ? '#c8a8e8' : '#a07840')
-      .text('❆');
+      .text('✦');
 
     var ng = svg.append('g').style('cursor','pointer')
       .on('click', function(){ showPanel(f.id); });
@@ -2154,12 +2156,44 @@ function renderConstellation() {
         .text(initials);
     }
 
+    // Name label
     svg.append('text')
       .attr('x', fx).attr('y', fy + 38)
       .attr('text-anchor','middle')
-      .attr('font-size','0.72rem')
+      .attr('font-size','0.75rem')
+      .attr('font-weight','600')
       .attr('fill', isNight ? '#ede8fc' : '#2a1f14')
       .text(f.name);
+
+    // Personal note (if any) — wrap to ~22 chars per line, max 2 lines
+    if (f.note && f.note.trim()) {
+      var noteText = f.note.trim();
+      var words = noteText.split(' ');
+      var lines = [], line = '';
+      words.forEach(function(w) {
+        if ((line + ' ' + w).trim().length > 22) { lines.push(line.trim()); line = w; }
+        else line = (line + ' ' + w).trim();
+      });
+      if (line) lines.push(line);
+      lines.slice(0,2).forEach(function(ln, li) {
+        svg.append('text')
+          .attr('x', fx).attr('y', fy + 52 + li * 13)
+          .attr('text-anchor','middle')
+          .attr('font-size','0.62rem')
+          .attr('fill', isNight ? 'rgba(237,232,252,0.55)' : 'rgba(42,31,20,0.5)')
+          .attr('font-style','italic')
+          .text(ln);
+      });
+    }
+
+    // Ring around photo nodes
+    if (f.photo) {
+      ng.append('circle')
+        .attr('cx',fx).attr('cy',fy).attr('r',29)
+        .attr('fill','none')
+        .attr('stroke', isNight ? 'rgba(120,88,185,0.6)' : 'rgba(160,120,70,0.6)')
+        .attr('stroke-width',1.5);
+    }
   });
 }
 
