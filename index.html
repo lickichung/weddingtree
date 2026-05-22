@@ -919,7 +919,7 @@
     <div class="fg"><label>Person A</label><select id="r-a"></select></div>
     <div class="fg">
       <label>Relationship Type</label>
-      <select id="r-type" onchange="updateDirNote()">
+      <select id="r-type" onchange="updateDirNote();autoConnStyle()">
         <option value="parent-child">Parent → Child</option>
         <option value="spouse">Spouse / Partner</option>
         <option value="sibling">Sibling</option>
@@ -935,6 +935,15 @@
       </select>
     </div>
     <div class="dir-note hidden" id="dir-note"></div>
+    <div class="fg">
+      <label>Connection Style</label>
+      <select id="r-conn-style">
+        <option value="biological">Biological — solid line</option>
+        <option value="step">Step — dashed line</option>
+        <option value="half">Half — dash-dot line</option>
+        <option value="friend">Friend / Honorary — dotted line</option>
+      </select>
+    </div>
     <div class="fg"><label>Person B</label><select id="r-b"></select></div>
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeRelModal()">Cancel</button>
@@ -1262,13 +1271,23 @@ function updateDirNote() {
     note.classList.remove('hidden');
   } else { note.classList.add('hidden'); }
 }
+function autoConnStyle() {
+  const type = document.getElementById('r-type').value;
+  const csEl = document.getElementById('r-conn-style');
+  if (!csEl) return;
+  if (type === 'step-parent-child') csEl.value = 'step';
+  else if (type === 'half-sibling') csEl.value = 'half';
+  else if (type === 'friend' || type === 'coworker') csEl.value = 'friend';
+  else csEl.value = 'biological';
+}
 function saveRel() {
   const a=document.getElementById('r-a').value, b=document.getElementById('r-b').value;
   const type=document.getElementById('r-type').value;
   if (a===b) { toast("Can't link a person to themselves"); return; }
   const dup=db.rels.some(r=>r.type===type&&((r.a===a&&r.b===b)||(!RT[type].directed&&r.a===b&&r.b===a)));
   if (dup) { toast('This relationship already exists'); return; }
-  db.rels.push({id:uid(),a,b,type,connStyle:'biological',relLabel:'',autoLinked:false});
+  const connStyle = (document.getElementById('r-conn-style')?.value) || 'biological';
+  db.rels.push({id:uid(),a,b,type,connStyle,relLabel:'',autoLinked:false});
   save(); closeRelModal(); renderGraph();
   const pA=db.people.find(p=>p.id===a), pB=db.people.find(p=>p.id===b);
   toast(`Linked ${pA.name} & ${pB.name}`);
