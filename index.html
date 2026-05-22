@@ -603,15 +603,10 @@
     .gf-connecting strong{color:var(--accent);}
 
     /* ── VIEW TOGGLE ── */
-    #view-toggle{position:absolute;top:14px;left:14px;background:var(--color-card-bg);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--color-card-border);border-radius:10px;display:flex;overflow:hidden;box-shadow:0 4px 16px rgba(100,70,30,0.1);z-index:5;}
-    .vtab{padding:7px 14px;border:none;cursor:pointer;font-size:0.79rem;font-weight:600;font-family:var(--font-body);background:transparent;color:var(--color-text-muted);transition:background 0.15s,color 0.15s;}
-    .vtab.active{background:var(--accent);color:#fff;}
-    .vtab:hover:not(.active){background:rgba(210,185,155,0.3);}
+
 
     /* ── CONSTELLATION EMPTY STATE ── */
-    #constellation-empty{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;}
-    #constellation-empty .big{font-size:3rem;margin-bottom:10px;}
-    #constellation-empty p{font-family:var(--font-display);font-size:0.95rem;color:var(--color-text-secondary);}
+
 
     /* ── LINK TOOLTIP ── */
     #link-tooltip{position:fixed;pointer-events:none;display:none;background:var(--color-card-bg);backdrop-filter:blur(10px);border:1px solid var(--color-card-border);border-radius:7px;padding:5px 10px;font-size:0.77rem;font-family:var(--font-body);color:var(--color-text-secondary);box-shadow:0 4px 14px rgba(100,70,30,0.12);z-index:9000;white-space:nowrap;}
@@ -624,7 +619,6 @@
     body.night .vf-input{background:rgba(22,15,44,0.8);color:var(--color-text-primary);}
     body.night .vr-match:hover{background:rgba(60,40,100,0.3);}
     body.night #link-tooltip{background:rgba(14,10,30,0.96);}
-    body.night .vtab.active{background:var(--accent);}
     body.night .gf-connecting{background:rgba(100,72,165,0.12);border-color:rgba(100,72,165,0.25);}
   </style>
 </head>
@@ -767,14 +761,7 @@
   </div>
 
 
-  <div id="view-toggle">
-    <button class="vtab active" id="vtab-family" onclick="setView('family')">🌳 Family</button>
-    <button class="vtab" id="vtab-friends" onclick="setView('friends')">✨ Friends</button>
-  </div>
-  <div id="constellation-empty">
-    <div class="big">✨</div>
-    <p>No friends added yet</p>
-  </div>
+
   <svg id="graph-svg"></svg>
 
   <div id="zoom-controls">
@@ -853,7 +840,19 @@
       <p style="font-size:0.82rem;color:var(--color-text-muted);margin-bottom:10px">Guests must visit with <code style="font-size:0.8em;background:rgba(184,106,42,0.1);padding:1px 5px;border-radius:4px">?invite=CODE</code> in the URL.</p>
       <div class="fg" style="margin-bottom:0">
         <label>Invite Code</label>
-        <input type="text" id="s-invite" placeholder="e.g. LEEKAYE2026">
+        <input type="text" id="s-invite" placeholder="e.g. SMITHBURKE2026">
+      </div>
+    </div>
+    <div class="settings-section">
+      <h3>☁ Live Sync</h3>
+      <p style="font-size:0.82rem;color:var(--color-text-muted);margin-bottom:10px">Connect a Google Apps Script so all guests share the same live tree. Photos stay local only. <a href="#" onclick="showSyncHelp();return false" style="color:var(--color-accent)">Setup guide →</a></p>
+      <div class="fg">
+        <label>Apps Script URL</label>
+        <input type="text" id="s-sync-url" placeholder="https://script.google.com/macros/s/…/exec" style="font-size:0.8rem">
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;margin-top:6px">
+        <button class="btn btn-secondary btn-sm" onclick="manualSync()">🔄 Sync Now</button>
+        <span id="sync-status" style="font-size:0.78rem;color:var(--color-text-muted)"></span>
       </div>
     </div>
     <div class="settings-section" style="border-bottom:none;margin-bottom:0">
@@ -972,7 +971,7 @@ const SIDE_COLORS = {
 // ═══════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════
-let db = { people:[], rels:[], settings:{ g1Name:'Groom 1', g2Name:'Groom 2', pin:'', inviteCode:'LEEKAYE2026' } };
+let db = { people:[], rels:[], settings:{ g1Name:'Groom 1', g2Name:'Groom 2', pin:'', inviteCode:'SMITHBURKE2026', syncUrl:'' } };
 let selectedId  = null;
 let editingId   = null;
 let tempPhoto   = null;
@@ -996,11 +995,11 @@ function load() {
       const p = JSON.parse(s);
       db.people   = p.people   || [];
       db.rels     = p.rels     || [];
-      db.settings = { g1Name:'Groom 1', g2Name:'Groom 2', pin:'', inviteCode:'LEEKAYE2026', ...(p.settings||{}) };
+      db.settings = { g1Name:'Groom 1', g2Name:'Groom 2', pin:'', inviteCode:'SMITHBURKE2026', syncUrl:'', ...(p.settings||{}) };
     }
   } catch(e) {}
 }
-function save() { localStorage.setItem('wt3', JSON.stringify(db)); }
+function save() { localStorage.setItem('wt3', JSON.stringify(db)); syncPush(); }
 
 // ═══════════════════════════════════════════
 // UTILITIES
@@ -1133,8 +1132,9 @@ function updatePinStatusLabel() {
 function openSettings() {
   document.getElementById('s-g1').value = g1();
   document.getElementById('s-g2').value = g2();
-  document.getElementById('s-invite').value = db.settings.inviteCode || 'LEEKAYE2026';
-  updateSettingsPreview(); updatePinStatusLabel();
+  document.getElementById('s-invite').value = db.settings.inviteCode || 'SMITHBURKE2026';
+  document.getElementById('s-sync-url').value = db.settings.syncUrl || '';
+  updateSettingsPreview(); updatePinStatusLabel(); updateSyncStatus();
   document.getElementById('settings-modal').classList.remove('hidden');
 }
 function closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); }
@@ -1151,6 +1151,7 @@ function saveSettings() {
   db.settings.g2Name=document.getElementById('s-g2').value.trim()||'Groom 2';
   const ic=document.getElementById('s-invite').value.trim();
   if (ic) db.settings.inviteCode=ic;
+  db.settings.syncUrl=document.getElementById('s-sync-url').value.trim();
   save(); closeSettings(); refreshUI(); renderList(); renderGraph(); toast('Settings saved');
 }
 
@@ -1437,9 +1438,8 @@ function renderGraph() {
   const posMap={};
   (sim.nodes()||[]).forEach(n=>posMap[n.id]={x:n.x,y:n.y});
 
-  const nodes=db.people.filter(p=>!p.isFriend&&p.side!=='friend').map(p=>({id:p.id,name:p.name,photo:p.photo,side:p.side,...(posMap[p.id]||{})}));
-  const friendIds=new Set(db.people.filter(p=>p.isFriend||p.side==='friend').map(p=>p.id));
-  const links=db.rels.filter(r=>!friendIds.has(r.a)&&!friendIds.has(r.b)).map(r=>({
+  const nodes=db.people.map(p=>({id:p.id,name:p.name,photo:p.photo,side:p.side,isFriend:p.isFriend||false,...(posMap[p.id]||{})}));
+  const links=db.rels.map(r=>({
     id:r.id, source:r.a, target:r.b, type:r.type,
     directed:RT[r.type]?.directed||false,
     rtColor:RT[r.type]?.color||'#806858',
@@ -1790,7 +1790,7 @@ function checkInvite() {
   if (sessionStorage.getItem('wtInviteOk') === '1') return true;
   const params   = new URLSearchParams(window.location.search);
   const code     = (params.get('invite') || '').trim().toUpperCase();
-  const expected = (db.settings.inviteCode || 'LEEKAYE2026').trim().toUpperCase();
+  const expected = (db.settings.inviteCode || 'SMITHBURKE2026').trim().toUpperCase();
   if (code === expected) {
     sessionStorage.setItem('wtInviteOk', '1');
     return true;
@@ -1966,7 +1966,6 @@ function saveGuest() {
   closeGuestForm();
   toast('Welcome, ' + name + '! You’ve been added to the tree.');
   refreshUI(); renderLegend(); renderList(); renderGraph();
-  if (isFriend) setView('friends');
 }
 
 // ═══════════════════════════════════════════
@@ -2059,146 +2058,7 @@ function runAutoInference(newId) {
 // ═══════════════════════════════════════════
 // VIEW TOGGLE + FRIENDS CONSTELLATION
 // ═══════════════════════════════════════════
-function setView(view) {
-  currentView = view;
-  var svgEl   = document.getElementById('graph-svg');
-  var emptyEl = document.getElementById('constellation-empty');
-  var oldCon  = document.getElementById('constellation-svg');
-
-  document.getElementById('vtab-family').classList.toggle('active', view === 'family');
-  document.getElementById('vtab-friends').classList.toggle('active', view === 'friends');
-
-  if (view === 'family') {
-    if (svgEl)   svgEl.style.display  = '';
-    if (oldCon)  oldCon.remove();
-    if (emptyEl) emptyEl.style.display = 'none';
-  } else {
-    if (svgEl) svgEl.style.display = 'none';
-    renderConstellation();
-  }
-}
-
-function renderConstellation() {
-  var friends = db.people.filter(function(p){ return p.isFriend || p.side === 'friend'; });
-  var emptyEl = document.getElementById('constellation-empty');
-  var mainEl  = document.getElementById('main');
-  var old     = document.getElementById('constellation-svg');
-  if (old) old.remove();
-
-  if (!friends.length) {
-    if (emptyEl) emptyEl.style.display = 'flex';
-    return;
-  }
-  if (emptyEl) emptyEl.style.display = 'none';
-
-  var W  = mainEl.clientWidth  || 800;
-  var H  = mainEl.clientHeight || 600;
-  var cx = W / 2, cy = H / 2;
-  var r  = Math.min(W, H) * 0.32;
-
-  var svg = d3.select('#main').append('svg')
-    .attr('id','constellation-svg')
-    .attr('width', W).attr('height', H)
-    .style('position','absolute').style('inset','0').style('z-index','1');
-
-  var g1 = db.settings.g1Name || 'Groom 1';
-  var g2 = db.settings.g2Name || 'Groom 2';
-  svg.append('text')
-    .attr('x', cx).attr('y', cy)
-    .attr('text-anchor','middle').attr('dominant-baseline','middle')
-    .attr('font-family','var(--font-display)').attr('font-size','1.1rem')
-    .attr('fill', isNight ? '#ede8fc' : '#2a1f14').attr('font-weight','600')
-    .text(g1 + ' & ' + g2);
-
-  var defs = svg.append('defs');
-
-  friends.forEach(function(f, i) {
-    var angle = 2 * Math.PI * i / friends.length - Math.PI / 2;
-    var fx = cx + r * Math.cos(angle);
-    var fy = cy + r * Math.sin(angle);
-
-    svg.append('line')
-      .attr('x1', cx).attr('y1', cy)
-      .attr('x2', fx).attr('y2', fy)
-      .attr('stroke', isNight ? 'rgba(160,120,220,0.4)' : 'rgba(160,120,70,0.4)')
-      .attr('stroke-width', 1.5)
-      .attr('stroke-dasharray','2,6');
-
-    var mx = (cx + fx) / 2, my = (cy + fy) / 2;
-    svg.append('text')
-      .attr('x', mx).attr('y', my)
-      .attr('text-anchor','middle').attr('dominant-baseline','middle')
-      .attr('font-size','0.85rem')
-      .attr('fill', isNight ? '#c8a8e8' : '#a07840')
-      .text('✦');
-
-    var ng = svg.append('g').style('cursor','pointer')
-      .on('click', function(){ showPanel(f.id); });
-
-    if (f.photo) {
-      var clipId = 'cp-' + f.id;
-      defs.append('clipPath').attr('id', clipId)
-        .append('circle').attr('r',28).attr('cx',fx).attr('cy',fy);
-      ng.append('image')
-        .attr('href', f.photo)
-        .attr('x', fx-28).attr('y', fy-28)
-        .attr('width',56).attr('height',56)
-        .attr('clip-path','url(#' + clipId + ')');
-    } else {
-      ng.append('circle')
-        .attr('cx',fx).attr('cy',fy).attr('r',28)
-        .attr('fill', isNight ? 'rgba(20,14,40,0.96)' : 'rgba(252,248,240,0.95)')
-        .attr('stroke', isNight ? 'rgba(120,88,185,0.7)' : 'rgba(160,120,70,0.7)')
-        .attr('stroke-width',1.5);
-      var initials = f.name.split(' ').map(function(w){ return w[0] || ''; }).join('').slice(0,2).toUpperCase();
-      ng.append('text')
-        .attr('x',fx).attr('y',fy)
-        .attr('text-anchor','middle').attr('dominant-baseline','middle')
-        .attr('font-size','0.9rem').attr('font-weight','600')
-        .attr('fill', isNight ? '#9888c8' : '#6a5040')
-        .text(initials);
-    }
-
-    // Name label
-    svg.append('text')
-      .attr('x', fx).attr('y', fy + 38)
-      .attr('text-anchor','middle')
-      .attr('font-size','0.75rem')
-      .attr('font-weight','600')
-      .attr('fill', isNight ? '#ede8fc' : '#2a1f14')
-      .text(f.name);
-
-    // Personal note (if any) — wrap to ~22 chars per line, max 2 lines
-    if (f.note && f.note.trim()) {
-      var noteText = f.note.trim();
-      var words = noteText.split(' ');
-      var lines = [], line = '';
-      words.forEach(function(w) {
-        if ((line + ' ' + w).trim().length > 22) { lines.push(line.trim()); line = w; }
-        else line = (line + ' ' + w).trim();
-      });
-      if (line) lines.push(line);
-      lines.slice(0,2).forEach(function(ln, li) {
-        svg.append('text')
-          .attr('x', fx).attr('y', fy + 52 + li * 13)
-          .attr('text-anchor','middle')
-          .attr('font-size','0.62rem')
-          .attr('fill', isNight ? 'rgba(237,232,252,0.55)' : 'rgba(42,31,20,0.5)')
-          .attr('font-style','italic')
-          .text(ln);
-      });
-    }
-
-    // Ring around photo nodes
-    if (f.photo) {
-      ng.append('circle')
-        .attr('cx',fx).attr('cy',fy).attr('r',29)
-        .attr('fill','none')
-        .attr('stroke', isNight ? 'rgba(120,88,185,0.6)' : 'rgba(160,120,70,0.6)')
-        .attr('stroke-width',1.5);
-    }
-  });
-}
+function setView(v) { currentView = v; }
 
 // ═══════════════════════════════════════════
 // BOOT
@@ -2211,17 +2071,163 @@ if (isNight) {
   document.getElementById('night-btn').textContent = '☀️';
   document.getElementById('night-btn').className   = 'icon-btn night-on';
 }
+
+// ═══════════════════════════════════════════
+// GOOGLE APPS SCRIPT SYNC ENGINE
+// ═══════════════════════════════════════════
+const APPS_SCRIPT_CODE = `function doGet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName('sync') || ss.insertSheet('sync');
+  var val = sh.getRange('A1').getValue();
+  if (!val) val = '{"people":[],"rels":[]}';
+  return ContentService.createTextOutput(val)
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName('sync') || ss.insertSheet('sync');
+  sh.getRange('A1').setValue(e.postData.contents);
+  return ContentService.createTextOutput('ok');
+}`;
+
+function getSyncUrl() { return (db.settings.syncUrl || '').trim(); }
+
+function stripPhotos(people) {
+  return people.map(function(p) {
+    var c = Object.assign({}, p);
+    delete c.photo;
+    return c;
+  });
+}
+
+async function syncPush() {
+  const url = getSyncUrl();
+  if (!url) return;
+  try {
+    const payload = JSON.stringify({
+      people: stripPhotos(db.people),
+      rels: db.rels,
+      settings: { g1Name: db.settings.g1Name, g2Name: db.settings.g2Name }
+    });
+    fetch(url, { method: 'POST', mode: 'no-cors', body: payload });
+  } catch(e) { console.warn('Sync push failed', e); }
+}
+
+async function syncPull() {
+  const url = getSyncUrl();
+  if (!url) return false;
+  try {
+    const resp = await fetch(url, { cache: 'no-store' });
+    if (!resp.ok) return false;
+    const remote = await resp.json();
+    if (!Array.isArray(remote.people) || !Array.isArray(remote.rels)) return false;
+
+    // Preserve local photos by person ID
+    const localPhotos = {};
+    db.people.forEach(function(p) { if (p.photo) localPhotos[p.id] = p.photo; });
+
+    // Additive merge: remote is base, add any local-only people/rels on top
+    const remotePeopleIds = new Set(remote.people.map(function(p){ return p.id; }));
+    const mergedPeople = remote.people.slice();
+    db.people.forEach(function(p){ if (!remotePeopleIds.has(p.id)) mergedPeople.push(p); });
+    mergedPeople.forEach(function(p){ if (localPhotos[p.id]) p.photo = localPhotos[p.id]; });
+
+    const remoteRelIds = new Set(remote.rels.map(function(r){ return r.id; }));
+    const mergedRels = remote.rels.slice();
+    db.rels.forEach(function(r){ if (!remoteRelIds.has(r.id)) mergedRels.push(r); });
+
+    db.people = mergedPeople;
+    db.rels   = mergedRels;
+    localStorage.setItem('wt3', JSON.stringify(db)); // save locally without triggering push loop
+    return true;
+  } catch(e) { console.warn('Sync pull failed', e); return false; }
+}
+
+let _lastSyncTime = null;
+function updateSyncStatus() {
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  if (!getSyncUrl()) { el.textContent = ''; return; }
+  el.textContent = _lastSyncTime ? 'Last sync: ' + _lastSyncTime : 'Not yet synced this session';
+}
+
+async function manualSync() {
+  const url = getSyncUrl();
+  if (!url) { toast('No sync URL — add one in Settings'); return; }
+  const statusEl = document.getElementById('sync-status');
+  if (statusEl) statusEl.textContent = 'Syncing…';
+  const ok = await syncPull();
+  if (ok) {
+    await syncPush();
+    _lastSyncTime = new Date().toLocaleTimeString();
+    refreshUI(); renderLegend(); renderList(); renderGraph();
+    toast('Synced ✓');
+    if (statusEl) statusEl.textContent = 'Last sync: ' + _lastSyncTime;
+  } else {
+    toast('Sync failed — check your Apps Script URL');
+    if (statusEl) statusEl.textContent = 'Sync failed ✗';
+  }
+}
+
+function showSyncHelp() {
+  const pre = document.getElementById('sync-script-code');
+  if (pre) pre.textContent = APPS_SCRIPT_CODE;
+  document.getElementById('sync-help-modal').classList.remove('hidden');
+}
+function closeSyncHelp() {
+  document.getElementById('sync-help-modal').classList.add('hidden');
+}
+function copySyncScript() {
+  navigator.clipboard.writeText(APPS_SCRIPT_CODE)
+    .then(function(){ toast('Code copied to clipboard!'); })
+    .catch(function(){ toast('Copy failed — select & copy manually'); });
+}
+
 // Invite gate — stop here if code invalid
 if (!checkInvite()) {
   // locked page is showing; do nothing else
 } else {
-  refreshUI(); renderLegend(); renderList(); initGraph(); renderGraph();
-  if (isNight) seedStars();
-  // Name verification — skip if already cleared this session or tree is empty
-  if (!sessionStorage.getItem('wtVerified') && db.people.length > 0) {
-    showVerifyOverlay();
-  }
+  // Pull from sync backend first (if configured), then render
+  syncPull().then(function() {
+    refreshUI(); renderLegend(); renderList(); initGraph(); renderGraph();
+    if (isNight) seedStars();
+    // Name verification — skip if already cleared this session or tree is empty
+    if (!sessionStorage.getItem('wtVerified') && db.people.length > 0) {
+      showVerifyOverlay();
+    }
+  });
 }
 </script>
+
+<!-- ══════════════ SYNC HELP MODAL ══════════════ -->
+<div class="overlay hidden" id="sync-help-modal">
+  <div class="modal" style="max-width:520px">
+    <h2>☁ Live Sync Setup</h2>
+    <p style="font-size:0.85rem;color:var(--color-text-muted);margin-bottom:14px">
+      Follow these steps once. After setup, every guest automatically shares the same tree — no app needed.
+    </p>
+    <ol style="font-size:0.82rem;line-height:1.9;padding-left:1.3em;margin:0 0 14px">
+      <li>Go to <a href="https://sheets.new" target="_blank" style="color:var(--color-accent)">sheets.new</a> to create a blank Google Sheet</li>
+      <li>Click <strong>Extensions → Apps Script</strong></li>
+      <li>Delete the default code, paste the code below, then click <strong>Save</strong></li>
+      <li>Click <strong>Deploy → New deployment</strong></li>
+      <li>Type: <strong>Web app</strong> &nbsp;·&nbsp; Execute as: <strong>Me</strong> &nbsp;·&nbsp; Access: <strong>Anyone</strong></li>
+      <li>Click <strong>Deploy</strong>, approve permissions, and copy the URL it gives you</li>
+      <li>Paste the URL into <strong>Settings → Apps Script URL</strong> and save</li>
+    </ol>
+    <div style="position:relative">
+      <pre id="sync-script-code" style="background:rgba(184,106,42,0.08);border:1px solid rgba(184,106,42,0.2);border-radius:8px;padding:12px;font-size:0.72rem;overflow-x:auto;white-space:pre;margin:0 0 8px;max-height:200px;overflow-y:auto;line-height:1.5"></pre>
+    </div>
+    <button class="btn btn-secondary btn-sm" onclick="copySyncScript()" style="margin-bottom:14px">📋 Copy Code</button>
+    <div style="background:rgba(58,158,122,0.08);border:1px solid rgba(58,158,122,0.2);border-radius:8px;padding:10px 12px;font-size:0.8rem;color:var(--color-text-muted)">
+      <strong style="color:var(--color-text)">Note:</strong> Photos are stored locally in each guest's browser and are not synced. Everything else — names, relationships, notes, birth years — syncs automatically.
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="closeSyncHelp()">Got it</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
