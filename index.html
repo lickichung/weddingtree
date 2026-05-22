@@ -230,15 +230,35 @@
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border: 1px solid var(--color-card-border);
-      border-radius: 10px; padding: 10px 13px; font-size: 0.72rem;
-      max-height: calc(100vh - 28px); overflow-y: auto;
+      border-radius: 10px; font-size: 0.72rem;
       box-shadow: 0 4px 20px rgba(100,70,30,0.1);
+      overflow: hidden;
     }
+    #legend-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 12px; cursor: pointer; user-select: none;
+      gap: 18px;
+    }
+    #legend-header:hover { background: rgba(184,106,42,0.06); }
     #legend h3 {
       font-family: var(--font-display);
       font-size: 0.68rem; text-transform: uppercase;
       letter-spacing: 0.07em; color: var(--color-text-muted);
-      margin-bottom: 8px;
+      margin: 0;
+    }
+    #legend-toggle-icon {
+      font-size: 0.65rem; color: var(--color-text-muted);
+      transition: transform 0.22s ease; line-height: 1;
+    }
+    #legend.collapsed #legend-toggle-icon { transform: rotate(-90deg); }
+    #legend-body {
+      padding: 0 13px 10px;
+      max-height: 60vh; overflow-y: auto;
+      transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
+      opacity: 1;
+    }
+    #legend.collapsed #legend-body {
+      max-height: 0; padding-top: 0; padding-bottom: 0; opacity: 0;
     }
     .leg-row { display: flex; align-items: center; gap: 7px; margin-bottom: 4px; }
     .leg-line { width: 22px; height: 2px; border-radius: 2px; flex-shrink: 0; }
@@ -871,8 +891,11 @@
     <button class="z-btn" onclick="zoomReset()">⊙</button>
   </div>
 
-  <div id="legend">
-    <h3>Relationships</h3>
+  <div id="legend" class="collapsed">
+    <div id="legend-header" onclick="toggleLegend()">
+      <h3>Relationships</h3>
+      <span id="legend-toggle-icon">▼</span>
+    </div>
     <div id="legend-body"></div>
   </div>
 </div>
@@ -1834,6 +1857,10 @@ function zoomReset() { svgSel.transition().duration(400).call(zoomBeh.transform,
 // ═══════════════════════════════════════════
 // LEGEND
 // ═══════════════════════════════════════════
+function toggleLegend() {
+  document.getElementById('legend').classList.toggle('collapsed');
+}
+
 function renderLegend() {
   const rtEntries = Object.values(RT).map(rt=>`
     <div class="leg-row">
