@@ -620,7 +620,104 @@
     body.night .vr-match:hover{background:rgba(60,40,100,0.3);}
     body.night #link-tooltip{background:rgba(14,10,30,0.96);}
     body.night .gf-connecting{background:rgba(100,72,165,0.12);border-color:rgba(100,72,165,0.25);}
-  </style>
+  
+    /* ═══════════════════════════════════════════
+       MOBILE LAYOUT  (≤ 640 px)
+    ═══════════════════════════════════════════ */
+    #mobile-menu-btn {
+      display: none;
+      position: absolute; top: 14px; left: 14px; z-index: 400;
+      width: 38px; height: 38px; border-radius: 10px;
+      background: var(--color-card-bg);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--color-card-border);
+      font-size: 1.1rem; cursor: pointer;
+      align-items: center; justify-content: center;
+      box-shadow: 0 2px 10px rgba(100,70,30,0.12);
+    }
+    #sidebar-backdrop {
+      display: none;
+      position: fixed; inset: 0; z-index: 499;
+      background: rgba(40,25,12,0.42);
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.25s;
+    }
+    /* bottom drag handle for detail panel on mobile */
+    #detail-handle {
+      display: none;
+      width: 36px; height: 4px; border-radius: 2px;
+      background: rgba(160,130,100,0.35);
+      margin: 10px auto 0;
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 640px) {
+      /* Sidebar → fixed left drawer */
+      #sidebar {
+        position: fixed;
+        left: 0; top: 0; bottom: 0;
+        transform: translateX(-100%);
+        transition: transform 0.28s cubic-bezier(.4,0,.2,1);
+        z-index: 500;
+        width: 82vw; max-width: 300px; min-width: unset;
+        box-shadow: none;
+      }
+      #sidebar.mobile-open {
+        transform: translateX(0);
+        box-shadow: 6px 0 32px rgba(60,40,20,0.22);
+      }
+
+      /* Backdrop shown when sidebar is open */
+      #sidebar-backdrop {
+        display: block;
+      }
+      #sidebar-backdrop.show {
+        opacity: 1; pointer-events: auto;
+      }
+
+      /* Hamburger button */
+      #mobile-menu-btn { display: flex; }
+
+      /* Detail panel → bottom sheet */
+      #detail-panel {
+        top: auto !important;
+        right: 0; left: 0;
+        bottom: 0; width: 100% !important;
+        height: 72vh;
+        border-left: none;
+        border-top: 1px solid var(--color-card-border);
+        border-radius: 16px 16px 0 0;
+        transform: translateY(100%);
+        transition: transform 0.28s cubic-bezier(.4,0,.2,1);
+      }
+      #detail-panel.open { transform: translateY(0); }
+      #detail-handle { display: block; }
+
+      /* Hint text — shorter on mobile */
+      #graph-hint { display: none; }
+
+      /* Zoom controls — keep clear of bottom sheet */
+      #zoom-controls { bottom: 16px; right: 12px; }
+
+      /* Lock banner */
+      #lock-banner { font-size: 0.78rem; padding: 6px 12px; }
+
+      /* Modals already have max-width:95vw — just ensure scrollable */
+      .modal-wrap { align-items: flex-end; padding-bottom: 0; }
+      .modal { border-radius: 16px 16px 0 0; max-height: 92vh; overflow-y: auto; }
+
+      /* Toast — centred above bottom sheet */
+      #toast { bottom: 76px; }
+
+      /* Person list items — bigger touch target */
+      .p-row { padding: 10px 12px; }
+
+      /* Side filter tabs — scrollable row */
+      #side-filter { overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
+      .stab { white-space: nowrap; flex-shrink: 0; }
+    }
+
+    </style>
 </head>
 <body class="locked">
 
@@ -676,6 +773,7 @@
         <option value="child">Child (they are my parent)</option>
         <option value="parent">Parent (they are my child)</option>
         <option value="sibling">Sibling</option>
+        <option value="step-sibling">Step-Sibling</option>
         <option value="partner">Partner / Spouse</option>
         <option value="other">Other / Distant</option>
       </select>
@@ -715,7 +813,7 @@
   <div id="sidebar-header">
     <div>
       <h1>💒 <span id="title-text">Wedding Tree</span></h1>
-      <p>Click a person · Drag to pin · Double-click to unpin · Scroll to zoom</p>
+      <p id="graph-hint">Click a person · Drag to pin · Double-click to unpin · Scroll to zoom</p>
     </div>
     <div class="header-btns">
       <button class="icon-btn" id="lock-btn"  onclick="toggleLock()"  title="Lock / Unlock editing">🔒</button>
@@ -751,7 +849,9 @@
 </div>
 
 <!-- ═══════════════════ MAIN GRAPH ═══════════════════ -->
+<div id="sidebar-backdrop" onclick="closeMobileSidebar()"></div>
 <div id="main">
+  <button id="mobile-menu-btn" onclick="toggleMobileSidebar()" title="Menu">☰</button>
   <div id="lock-banner">
     🔒 View-only — <button onclick="toggleLock()">Unlock to edit</button>
   </div>
@@ -778,7 +878,10 @@
 </div>
 
 <!-- ═══════════════════ DETAIL PANEL ═══════════════════ -->
-<div id="detail-panel"><div id="detail-inner"></div></div>
+<div id="detail-panel">
+  <div id="detail-handle"></div>
+  <div id="detail-inner"></div>
+</div>
 
 <!-- ═══════════════════ TOAST ═══════════════════ -->
 <div id="toast"></div>
@@ -926,6 +1029,7 @@
         <option value="sibling">Sibling</option>
         <option value="step-parent-child">Step-Parent → Step-Child</option>
         <option value="half-sibling">Half-Sibling</option>
+        <option value="step-sibling">Step-Sibling</option>
         <option value="in-law">In-Law</option>
         <option value="cousin">Cousin</option>
         <option value="aunt-uncle">Aunt / Uncle → Niece / Nephew</option>
@@ -964,6 +1068,7 @@ const RT = {
   'sibling':           { label:'Sibling',             color:'#4a8a68', directed:false, aLabel:'Sibling of',     bLabel:'Sibling of' },
   'step-parent-child': { label:'Step-Parent / Child', color:'#b07030', directed:true,  aLabel:'Step-parent of', bLabel:'Step-child of' },
   'half-sibling':      { label:'Half-Sibling',        color:'#a08040', directed:false, aLabel:'Half-sibling of',bLabel:'Half-sibling of' },
+  'step-sibling':      { label:'Step-Sibling',        color:'#c07840', directed:false, aLabel:'Step-sibling of', bLabel:'Step-sibling of' },
   'in-law':            { label:'In-Law',              color:'#7a5090', directed:false, aLabel:'In-law of',      bLabel:'In-law of' },
   'cousin':            { label:'Cousin',              color:'#3a8898', directed:false, aLabel:'Cousin of',      bLabel:'Cousin of' },
   'aunt-uncle':        { label:'Aunt / Uncle',        color:'#3a9088', directed:true,  aLabel:'Aunt/Uncle of',  bLabel:'Niece/Nephew of' },
@@ -1283,7 +1388,7 @@ function autoConnStyle() {
   const type = document.getElementById('r-type').value;
   const csEl = document.getElementById('r-conn-style');
   if (!csEl) return;
-  if (type === 'step-parent-child') csEl.value = 'step';
+  if (type === 'step-parent-child' || type === 'step-sibling') csEl.value = 'step';
   else if (type === 'half-sibling') csEl.value = 'half';
   else if (type === 'friend' || type === 'coworker') csEl.value = 'friend';
   else csEl.value = 'biological';
@@ -1356,7 +1461,7 @@ function renderList() {
 // ═══════════════════════════════════════════
 // DETAIL PANEL
 // ═══════════════════════════════════════════
-function selectPerson(id) { selectedId=id; renderList(); showPanel(id); highlightNode(id); }
+function selectPerson(id) { selectedId=id; renderList(); showPanel(id); highlightNode(id); closeMobileSidebar(); }
 function showPanel(id) {
   const p=db.people.find(x=>x.id===id); if (!p) return;
   const conns=db.rels.filter(r=>r.a===id||r.b===id).map(r=>{
@@ -2084,8 +2189,18 @@ function saveGuest() {
   sessionStorage.setItem('wtGuestId', newId);
 
   if (!isFriend && verifiedId) {
-    createDirectRel(newId, verifiedId, structRel, connType, relLabel);
-    if (connType === 'biological') runAutoInference(newId);
+    // Step-sibling always uses step connStyle regardless of connection type selection
+    const effectiveConnType = (structRel === 'step-sibling') ? 'step' : connType;
+    createDirectRel(newId, verifiedId, structRel, effectiveConnType, relLabel);
+    // Bio siblings inherit parents so inference can fire correctly
+    if (structRel === 'sibling' && connType === 'biological') {
+      getBioParents(verifiedId).forEach(function(parId) {
+        if (!relExists(parId, newId, 'parent-child'))
+          makeRel(parId, newId, 'parent-child', 'biological', '', true);
+      });
+    }
+    // Only run bio inference for biological connections (not step-sibling)
+    if (effectiveConnType === 'biological') runAutoInference(newId);
   } else if (isFriend) {
     // Link friend to both grooms
     db.people.filter(function(p){ return p.id === 'g1' || p.id === 'g2'; })
@@ -2144,10 +2259,11 @@ function relExists(aId, bId, type) {
 
 function createDirectRel(newId, verifiedId, structRel, connStyle, relLabel) {
   var rtType = 'other';
-  if (structRel === 'parent')  rtType = 'parent-child';
-  if (structRel === 'child')   rtType = 'parent-child';
-  if (structRel === 'sibling') rtType = 'sibling';
-  if (structRel === 'partner') rtType = 'partner';
+  if (structRel === 'parent')       rtType = 'parent-child';
+  if (structRel === 'child')        rtType = 'parent-child';
+  if (structRel === 'sibling')      rtType = 'sibling';
+  if (structRel === 'step-sibling') rtType = 'step-sibling';
+  if (structRel === 'partner')      rtType = 'partner';
 
   var a = newId, b = verifiedId;
   if (rtType === 'parent-child') {
@@ -2226,6 +2342,21 @@ function runAutoInference(newId, _depth) {
 // VIEW TOGGLE + FRIENDS CONSTELLATION
 // ═══════════════════════════════════════════
 function setView(v) { currentView = v; }
+
+// ═══════════════════════════════════════════
+// MOBILE SIDEBAR
+// ═══════════════════════════════════════════
+function toggleMobileSidebar() {
+  const sb = document.getElementById('sidebar');
+  const bd = document.getElementById('sidebar-backdrop');
+  const opening = !sb.classList.contains('mobile-open');
+  sb.classList.toggle('mobile-open', opening);
+  bd.classList.toggle('show', opening);
+}
+function closeMobileSidebar() {
+  document.getElementById('sidebar').classList.remove('mobile-open');
+  document.getElementById('sidebar-backdrop').classList.remove('show');
+}
 
 function rerunAllInference() {
   // Strip all auto-linked rels, then re-derive from scratch
